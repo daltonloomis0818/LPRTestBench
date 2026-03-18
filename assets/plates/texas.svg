@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="440" viewBox="0 0 880 440">
+  <defs>
+    <filter id="emboss" x="-5%" y="-5%" width="110%" height="110%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="blur"/>
+      <feSpecularLighting in="blur" surfaceScale="2" specularConstant="0.6" specularExponent="15" result="spec">
+        <fePointLight x="200" y="100" z="200"/>
+      </feSpecularLighting>
+      <feComposite in="spec" in2="SourceGraphic" operator="in" result="specOut"/>
+      <feComposite in="SourceGraphic" in2="specOut" operator="arithmetic" k1="0" k2="1" k3="0.3" k4="0"/>
+    </filter>
+  </defs>
+
+  <!-- Plate background -->
+  <rect x="0" y="0" width="880" height="440" rx="12" ry="12" fill="#FFFFFF"/>
+
+  <!-- Outer border -->
+  <rect x="8" y="8" width="864" height="424" rx="8" ry="8" fill="none" stroke="#1B2A4A" stroke-width="4"/>
+  <!-- Inner border -->
+  <rect x="16" y="16" width="848" height="408" rx="6" ry="6" fill="none" stroke="#1B2A4A" stroke-width="2"/>
+
+  <!-- Header bar -->
+  <rect x="16" y="16" width="848" height="72" rx="6" ry="6" fill="#1B2A4A"/>
+  <!-- Clean bottom corners of header -->
+  <rect x="16" y="60" width="848" height="28" fill="#1B2A4A"/>
+
+  <!-- Lone Star in header -->
+  <polygon points="440,24 451,56 485,56 457,72 467,104 440,86 413,104 423,72 395,56 429,56"
+           fill="#C9A84C" stroke="#C9A84C" stroke-width="1"/>
+
+  <!-- TEXAS text in header -->
+  <text x="280" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900"
+        font-size="42" fill="#C9A84C" letter-spacing="14" text-anchor="middle">TEX</text>
+  <text x="610" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900"
+        font-size="42" fill="#C9A84C" letter-spacing="14" text-anchor="middle">AS</text>
+
+  <!-- Main plate text -->
+  <text x="440" y="290" font-family="Arial Black, Arial, sans-serif" font-weight="900"
+        font-size="120" fill="#1B2A4A" text-anchor="middle" letter-spacing="18"
+        filter="url(#emboss)">{{PLATE_TEXT}}</text>
+
+  <!-- Bottom tagline -->
+  <text x="440" y="390" font-family="Arial, sans-serif" font-weight="600"
+        font-size="28" fill="#1B2A4A" text-anchor="middle" letter-spacing="8">The Lone Star State</text>
+
+  <!-- Bolt holes -->
+  <circle cx="140" cy="400" r="12" fill="#E0E0E0" stroke="#AAAAAA" stroke-width="2"/>
+  <circle cx="140" cy="400" r="4" fill="#888888"/>
+  <circle cx="740" cy="400" r="12" fill="#E0E0E0" stroke="#AAAAAA" stroke-width="2"/>
+  <circle cx="740" cy="400" r="4" fill="#888888"/>
+</svg>
