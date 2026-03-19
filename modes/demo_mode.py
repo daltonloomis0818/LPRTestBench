@@ -470,22 +470,39 @@ class DemoMode(ctk.CTkFrame):
             pass
 
     def _toggle_fullscreen(self):
-        self._is_fullscreen = not self._is_fullscreen
+        if self._is_fullscreen:
+            self._exit_fullscreen()
+        else:
+            self._enter_fullscreen()
+
+    def _enter_fullscreen(self):
+        self._is_fullscreen = True
         top = self.winfo_toplevel()
-        top.attributes('-fullscreen', self._is_fullscreen)
-        # Hide/show the nav bar when entering/exiting fullscreen
+        # Save current geometry to restore later
+        self._pre_fs_geometry = top.geometry()
+        # Hide nav bar
         if hasattr(self.app, '_nav_frame'):
-            if self._is_fullscreen:
-                self.app._nav_frame.pack_forget()
-            else:
-                self.app._nav_frame.pack(side=tk.TOP, fill=tk.X, before=self.app._container)
+            self.app._nav_frame.pack_forget()
+        # True fullscreen — covers taskbar and everything
+        top.attributes('-fullscreen', True)
+        top.attributes('-topmost', True)
+        top.after(200, lambda: top.attributes('-topmost', False))
+        # Reposition controls for new size
+        self.after(100, self._reposition_controls)
 
     def _exit_fullscreen(self):
-        if self._is_fullscreen:
-            self._is_fullscreen = False
-            self.winfo_toplevel().attributes('-fullscreen', False)
-            if hasattr(self.app, '_nav_frame'):
-                self.app._nav_frame.pack(side=tk.TOP, fill=tk.X, before=self.app._container)
+        if not self._is_fullscreen:
+            return
+        self._is_fullscreen = False
+        top = self.winfo_toplevel()
+        top.attributes('-fullscreen', False)
+        # Restore nav bar
+        if hasattr(self.app, '_nav_frame'):
+            self.app._nav_frame.pack(side=tk.TOP, fill=tk.X, before=self.app._container)
+        # Restore previous geometry
+        if hasattr(self, '_pre_fs_geometry'):
+            top.geometry(self._pre_fs_geometry)
+        self.after(100, self._reposition_controls)
 
     def _export_current(self):
         if not self._current_image or not self._current_metadata:
