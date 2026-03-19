@@ -15,8 +15,8 @@ else:
     _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 
 PLATES_DIR = os.path.join(_BASE_DIR, 'assets', 'plates')
-RENDER_WIDTH = 1760
-RENDER_HEIGHT = 880
+RENDER_WIDTH = 2968
+RENDER_HEIGHT = 1440
 
 # Try to import cairosvg — may fail on Windows without GTK runtime
 _HAS_CAIROSVG = False
@@ -131,80 +131,51 @@ def _try_font(names: list[str], size: int) -> ImageFont.FreeTypeFont | ImageFont
 
 
 class _TexasPlateRenderer:
-    """Draws the current Texas Classic plate — matches real DMV design.
-    Renders at 2x resolution for sharp downscaling when warped onto vehicles."""
+    """Texas Classic plate — uses the real blank plate image, stamps text only."""
+
+    _blank: Image.Image | None = None
+
+    def _get_blank(self) -> Image.Image:
+        """Load the blank Texas plate template image (cached)."""
+        if _TexasPlateRenderer._blank is None:
+            blank_path = os.path.join(_BASE_DIR, 'assets', 'plates', 'texas_blank.png')
+            if os.path.isfile(blank_path):
+                _TexasPlateRenderer._blank = Image.open(blank_path).convert('RGBA')
+            else:
+                # Fallback: solid background if image missing
+                _TexasPlateRenderer._blank = Image.new('RGBA',
+                    (RENDER_WIDTH, RENDER_HEIGHT), (210, 218, 228, 255))
+        return _TexasPlateRenderer._blank
 
     def render(self, plate_text: str) -> Image.Image:
         import math
-        W, H = RENDER_WIDTH, RENDER_HEIGHT
 
-        # Background: reflective light blue-gray with subtle noise
-        bg = (210, 218, 228)
-        img = Image.new('RGBA', (W, H), bg)
-
-        # Subtle reflective sheeting texture
-        import numpy as np
-        arr = np.array(img, dtype=np.float32)
-        noise = np.random.normal(0, 3.0, (H, W))
-        for c in range(3):
-            arr[:, :, c] = np.clip(arr[:, :, c] + noise, 0, 255)
-        img = Image.fromarray(arr.astype(np.uint8), 'RGBA')
-
+        img = self._get_blank().copy()
+        W, H = img.size
         draw = ImageDraw.Draw(img)
         black = (10, 10, 10)
-        bolt_bg = (230, 235, 240)
-        bolt_rim = (160, 165, 170)
 
-        # Plate border
-        draw.rounded_rectangle([5, 5, W - 6, H - 6], radius=24,
-                               outline=(70, 70, 70), width=4)
-
-        # ── Large 5-point star — top-left ──
-        star_cx, star_cy = 195, 150
-        star_r, star_ir = 90, 38
-        star_pts = []
-        for i in range(10):
-            angle = math.radians(-90 + i * 36)
-            r = star_r if i % 2 == 0 else star_ir
-            star_pts.append((star_cx + r * math.cos(angle),
-                             star_cy + r * math.sin(angle)))
-        draw.polygon(star_pts, fill=black)
-
-        # ── "TEXAS" — top center-right ──
-        texas_font = _plate_font(156)
-        draw.text((970, 140), "TEXAS", fill=black, font=texas_font, anchor='mm')
-
-        # ── Bolt holes — 4 corners ──
-        bolt_positions = [(100, 80), (W - 100, 80), (100, H - 80), (W - 100, H - 80)]
-        for bx, by in bolt_positions:
-            draw.ellipse([bx - 26, by - 26, bx + 26, by + 26],
-                         fill=bolt_bg, outline=bolt_rim, width=3)
-            draw.rounded_rectangle([bx - 14, by - 5, bx + 14, by + 5],
-                                   radius=3, fill=bolt_rim)
-
-        # ── Decorative wavy lines ──
-        for base_x in [520, 1240]:
-            for y in range(30, H - 30, 4):
-                offset = math.sin(y * 0.03) * 22
-                c = (185, 192, 198, 80)
-                draw.ellipse([base_x + offset - 2, y - 2,
-                              base_x + offset + 2, y + 2], fill=c)
-
-        # ── Main plate number ──
+        # Split plate text: "ABC-1234" → "ABC" ★ "1234"
         if '-' in plate_text:
             left_text, right_text = plate_text.split('-', 1)
         else:
             left_text = plate_text[:3]
             right_text = plate_text[3:]
 
-        plate_font = _plate_font(250)
-        center_y = 480
+        # Font sized proportional to the plate image
+        font_size = int(H * 0.22)
+        plate_font = _plate_font(font_size)
 
+        # Plate number sits at roughly 52% down from top
+        center_y = int(H * 0.52)
+
+        # Measure text to center around star separator
         left_bbox = draw.textbbox((0, 0), left_text, font=plate_font)
         right_bbox = draw.textbbox((0, 0), right_text, font=plate_font)
         left_w = left_bbox[2] - left_bbox[0]
         right_w = right_bbox[2] - right_bbox[0]
-        star_gap = 120
+
+        star_gap = int(W * 0.038)
         total_w = left_w + star_gap + right_w
         start_x = (W - total_w) // 2
 
@@ -212,20 +183,21 @@ class _TexasPlateRenderer:
         draw.text((start_x + left_w // 2, center_y), left_text,
                   fill=black, font=plate_font, anchor='mm')
 
-        # Star separator
+        # Star separator with Texas shape
         sep_cx = start_x + left_w + star_gap // 2
         sep_cy = center_y
-        sep_r, sep_ir = 34, 14
+        sep_r = int(H * 0.028)
+        sep_ir = int(sep_r * 0.4)
         sep_pts = []
         for i in range(10):
             angle = math.radians(-90 + i * 36)
             r = sep_r if i % 2 == 0 else sep_ir
             sep_pts.append((sep_cx + r * math.cos(angle),
                             sep_cy + r * math.sin(angle)))
-        draw.polygon(sep_pts, fill=None, outline=black, width=4)
+        draw.polygon(sep_pts, fill=None, outline=black, width=max(3, int(H * 0.003)))
 
-        # Texas shape inside separator
-        tx_scale = 0.38
+        # Texas shape inside
+        tx_scale = sep_r * 0.012
         tx_raw = [
             (-30, -28), (-30, 2), (-18, 2), (-18, 18), (-8, 28),
             (4, 28), (10, 18), (18, 18), (26, 8), (30, 2),
@@ -239,12 +211,7 @@ class _TexasPlateRenderer:
         draw.text((start_x + left_w + star_gap + right_w // 2, center_y),
                   right_text, fill=black, font=plate_font, anchor='mm')
 
-        # ── "The Lone Star State" — bottom ──
-        tagline_font = _plate_font(56)
-        draw.text((W // 2 - 100, H - 95), "The Lone Star State",
-                  fill=black, font=tagline_font, anchor='mm')
-
-        return img.convert('RGBA')
+        return img
 
 
 class _GenericPlateRenderer:
