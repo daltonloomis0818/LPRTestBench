@@ -263,19 +263,44 @@ class AssetsMode(tk.Frame):
 
         # Instructions
         self._instruction_var = tk.StringVar(
-            value="Click the 4 corners of the plate region: Top-Left first"
+            value="Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)"
         )
         tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 10),
-                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 8))
+                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 4))
+
+        # Buttons ABOVE the canvas so they're always visible
+        btn_frame = tk.Frame(self, bg='#1e1e2e')
+        btn_frame.pack(pady=(0, 4))
+
+        self._undo_btn = tk.Button(btn_frame, text="Undo Last Point",
+                                   font=('Segoe UI', 10),
+                                   fg='#cdd6f4', bg='#45475a', bd=0,
+                                   padx=16, pady=6, cursor='hand2',
+                                   command=self._undo_last_corner, state=tk.DISABLED)
+        self._undo_btn.pack(side=tk.LEFT, padx=8)
+
+        self._redo_btn = tk.Button(btn_frame, text="Reset All",
+                                   font=('Segoe UI', 10),
+                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
+                                   padx=16, pady=6, cursor='hand2',
+                                   command=self._redo_corners, state=tk.DISABLED)
+        self._redo_btn.pack(side=tk.LEFT, padx=8)
+
+        self._confirm_btn = tk.Button(btn_frame, text="Confirm Corners",
+                                      font=('Segoe UI', 10, 'bold'),
+                                      fg='#1e1e2e', bg='#a6e3a1', bd=0,
+                                      padx=16, pady=6, cursor='hand2',
+                                      command=self._confirm_corners, state=tk.DISABLED)
+        self._confirm_btn.pack(side=tk.LEFT, padx=8)
 
         # Canvas
         canvas_frame = tk.Frame(self, bg='#1e1e2e')
-        canvas_frame.pack(expand=True)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
                                     bg='#181825', highlightthickness=1,
                                     highlightbackground='#45475a')
-        self._ob_canvas.pack()
+        self._ob_canvas.pack(expand=True)
 
         # Load and display image
         path = os.path.join(VEHICLES_DIR, filename)
@@ -299,23 +324,7 @@ class AssetsMode(tk.Frame):
                                      anchor='nw', image=self._ob_photo, tags='vehicle')
 
         self._ob_canvas.bind('<Button-1>', self._on_canvas_click)
-
-        # Buttons (hidden until 4 corners placed)
-        btn_frame = tk.Frame(self, bg='#1e1e2e')
-        btn_frame.pack(pady=8)
-        self._confirm_btn = tk.Button(btn_frame, text="Confirm Corners",
-                                      font=('Segoe UI', 10, 'bold'),
-                                      fg='#1e1e2e', bg='#a6e3a1', bd=0,
-                                      padx=16, pady=6, cursor='hand2',
-                                      command=self._confirm_corners, state=tk.DISABLED)
-        self._confirm_btn.pack(side=tk.LEFT, padx=8)
-
-        self._redo_btn = tk.Button(btn_frame, text="Redo",
-                                   font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._redo_corners)
-        self._redo_btn.pack(side=tk.LEFT, padx=8)
+        self._ob_canvas.bind('<Button-3>', lambda e: self._undo_last_corner())
 
     def _on_canvas_click(self, event):
         if len(self._onboard_corners) >= 4:
@@ -339,13 +348,18 @@ class AssetsMode(tk.Frame):
                                            fill='#f38ba8', outline='white', width=1)
         text = self._ob_canvas.create_text(x, y, text=str(idx),
                                             font=('Segoe UI', 8, 'bold'), fill='white')
-        self._corner_dots.extend([dot, text])
+        # Store as pairs so undo can remove one point at a time
+        self._corner_dots.append((dot, text))
+
+        # Enable undo/reset now that we have at least one point
+        self._undo_btn.configure(state=tk.NORMAL)
+        self._redo_btn.configure(state=tk.NORMAL)
 
         labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
         if idx < 4:
-            self._instruction_var.set(f"Click corner {idx + 1}: {labels[idx]}")
+            self._instruction_var.set(f"Click corner {idx + 1}: {labels[idx]}  (Right-click to undo)")
         else:
-            self._instruction_var.set("4 corners placed — review the green outline")
+            self._instruction_var.set("4 corners placed — review the green outline, then Confirm or Reset")
             self._draw_corner_polygon()
             self._render_warp_preview()
             self._confirm_btn.configure(state=tk.NORMAL)
@@ -386,16 +400,52 @@ class AssetsMode(tk.Frame):
         except Exception as e:
             print(f"[Onboarding] Preview render failed: {e}")
 
+    def _undo_last_corner(self):
+        """Remove the last placed corner point."""
+        if not self._onboard_corners:
+            return
+
+        self._onboard_corners.pop()
+
+        # Remove the last dot+text pair from canvas
+        if self._corner_dots:
+            dot, text = self._corner_dots.pop()
+            self._ob_canvas.delete(dot)
+            self._ob_canvas.delete(text)
+
+        # Remove polygon and preview if they were drawn
+        self._ob_canvas.delete('polygon')
+        self._confirm_btn.configure(state=tk.DISABLED)
+
+        # Restore original image (remove warp preview)
+        self._restore_original_image()
+
+        # Update button states
+        if not self._onboard_corners:
+            self._undo_btn.configure(state=tk.DISABLED)
+            self._redo_btn.configure(state=tk.DISABLED)
+            self._instruction_var.set("Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)")
+        else:
+            labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
+            idx = len(self._onboard_corners)
+            self._instruction_var.set(f"Click corner {idx + 1}: {labels[idx]}  (Right-click to undo)")
+
     def _redo_corners(self):
+        """Reset all corners and start over."""
         self._onboard_corners.clear()
-        for item in self._corner_dots:
-            self._ob_canvas.delete(item)
+        for dot, text in self._corner_dots:
+            self._ob_canvas.delete(dot)
+            self._ob_canvas.delete(text)
         self._corner_dots.clear()
         self._ob_canvas.delete('polygon')
         self._confirm_btn.configure(state=tk.DISABLED)
-        self._instruction_var.set("Click the 4 corners of the plate region: Top-Left first")
+        self._undo_btn.configure(state=tk.DISABLED)
+        self._redo_btn.configure(state=tk.DISABLED)
+        self._instruction_var.set("Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)")
+        self._restore_original_image()
 
-        # Restore original image
+    def _restore_original_image(self):
+        """Redraw the original vehicle image on the canvas (removes warp preview)."""
         disp_w = int(self._onboard_pil.width * self._display_scale)
         disp_h = int(self._onboard_pil.height * self._display_scale)
         resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
@@ -729,37 +779,28 @@ class AssetsMode(tk.Frame):
                   cursor='hand2', command=lambda: self._show_detail(asset_id)).pack(side=tk.RIGHT)
 
         self._instruction_var = tk.StringVar(
-            value="Click the 4 corners of the plate region: Top-Left first"
+            value="Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)"
         )
         tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 10),
-                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 8))
+                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 4))
 
-        canvas_frame = tk.Frame(self, bg='#1e1e2e')
-        canvas_frame.pack(expand=True)
-
-        self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
-                                    bg='#181825', highlightthickness=1,
-                                    highlightbackground='#45475a')
-        self._ob_canvas.pack()
-
-        path = os.path.join(VEHICLES_DIR, filename)
-        self._onboard_pil = Image.open(path).convert('RGBA')
-        self._display_scale = min(CANVAS_W / self._onboard_pil.width,
-                                  CANVAS_H / self._onboard_pil.height)
-        disp_w = int(self._onboard_pil.width * self._display_scale)
-        disp_h = int(self._onboard_pil.height * self._display_scale)
-        self._display_offset_x = (CANVAS_W - disp_w) // 2
-        self._display_offset_y = (CANVAS_H - disp_h) // 2
-
-        resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
-        self._ob_photo = ImageTk.PhotoImage(resized)
-        self._ob_canvas.create_image(self._display_offset_x, self._display_offset_y,
-                                     anchor='nw', image=self._ob_photo, tags='vehicle')
-        self._ob_canvas.bind('<Button-1>', self._on_canvas_click)
-        self._onboard_filename = filename
-
+        # Buttons above canvas
         btn_frame = tk.Frame(self, bg='#1e1e2e')
-        btn_frame.pack(pady=8)
+        btn_frame.pack(pady=(0, 4))
+
+        self._undo_btn = tk.Button(btn_frame, text="Undo Last Point",
+                                   font=('Segoe UI', 10),
+                                   fg='#cdd6f4', bg='#45475a', bd=0,
+                                   padx=16, pady=6, cursor='hand2',
+                                   command=self._undo_last_corner, state=tk.DISABLED)
+        self._undo_btn.pack(side=tk.LEFT, padx=8)
+
+        self._redo_btn = tk.Button(btn_frame, text="Reset All",
+                                   font=('Segoe UI', 10),
+                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
+                                   padx=16, pady=6, cursor='hand2',
+                                   command=self._redo_corners, state=tk.DISABLED)
+        self._redo_btn.pack(side=tk.LEFT, padx=8)
 
         def save_corners():
             corners_json = json.dumps(self._onboard_corners)
@@ -776,12 +817,31 @@ class AssetsMode(tk.Frame):
                                       command=save_corners, state=tk.DISABLED)
         self._confirm_btn.pack(side=tk.LEFT, padx=8)
 
-        self._redo_btn = tk.Button(btn_frame, text="Redo",
-                                   font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._redo_corners)
-        self._redo_btn.pack(side=tk.LEFT, padx=8)
+        # Canvas
+        canvas_frame = tk.Frame(self, bg='#1e1e2e')
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
+
+        self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
+                                    bg='#181825', highlightthickness=1,
+                                    highlightbackground='#45475a')
+        self._ob_canvas.pack(expand=True)
+
+        path = os.path.join(VEHICLES_DIR, filename)
+        self._onboard_pil = Image.open(path).convert('RGBA')
+        self._display_scale = min(CANVAS_W / self._onboard_pil.width,
+                                  CANVAS_H / self._onboard_pil.height)
+        disp_w = int(self._onboard_pil.width * self._display_scale)
+        disp_h = int(self._onboard_pil.height * self._display_scale)
+        self._display_offset_x = (CANVAS_W - disp_w) // 2
+        self._display_offset_y = (CANVAS_H - disp_h) // 2
+
+        resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
+        self._ob_photo = ImageTk.PhotoImage(resized)
+        self._ob_canvas.create_image(self._display_offset_x, self._display_offset_y,
+                                     anchor='nw', image=self._ob_photo, tags='vehicle')
+        self._ob_canvas.bind('<Button-1>', self._on_canvas_click)
+        self._ob_canvas.bind('<Button-3>', lambda e: self._undo_last_corner())
+        self._onboard_filename = filename
 
     # ── Utilities ─────────────────────────────────────────────────
 
