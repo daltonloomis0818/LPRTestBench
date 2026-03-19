@@ -15,8 +15,8 @@ else:
     _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 
 PLATES_DIR = os.path.join(_BASE_DIR, 'assets', 'plates')
-RENDER_WIDTH = 880
-RENDER_HEIGHT = 440
+RENDER_WIDTH = 1760
+RENDER_HEIGHT = 880
 
 # Try to import cairosvg — may fail on Windows without GTK runtime
 _HAS_CAIROSVG = False
@@ -131,7 +131,8 @@ def _try_font(names: list[str], size: int) -> ImageFont.FreeTypeFont | ImageFont
 
 
 class _TexasPlateRenderer:
-    """Draws the current Texas Classic plate — matches real DMV design."""
+    """Draws the current Texas Classic plate — matches real DMV design.
+    Renders at 2x resolution for sharp downscaling when warped onto vehicles."""
 
     def render(self, plate_text: str) -> Image.Image:
         import math
@@ -141,26 +142,26 @@ class _TexasPlateRenderer:
         bg = (210, 218, 228)
         img = Image.new('RGBA', (W, H), bg)
 
-        # Add subtle noise texture to simulate reflective sheeting
+        # Subtle reflective sheeting texture
         import numpy as np
         arr = np.array(img, dtype=np.float32)
-        noise = np.random.normal(0, 3.5, (H, W))
+        noise = np.random.normal(0, 3.0, (H, W))
         for c in range(3):
             arr[:, :, c] = np.clip(arr[:, :, c] + noise, 0, 255)
         img = Image.fromarray(arr.astype(np.uint8), 'RGBA')
 
         draw = ImageDraw.Draw(img)
-        black = (15, 15, 15)
-        white_bolt = (235, 240, 245)
-        bolt_shadow = (170, 175, 180)
+        black = (10, 10, 10)
+        bolt_bg = (230, 235, 240)
+        bolt_rim = (160, 165, 170)
 
-        # Plate border — thin dark outline with rounded corners
-        draw.rounded_rectangle([3, 3, W - 4, H - 4], radius=12,
-                               outline=(80, 80, 80), width=2)
+        # Plate border
+        draw.rounded_rectangle([5, 5, W - 6, H - 6], radius=24,
+                               outline=(70, 70, 70), width=4)
 
-        # ── Large 5-point star — top-left corner ──
-        star_cx, star_cy = 100, 75
-        star_r, star_ir = 48, 20
+        # ── Large 5-point star — top-left ──
+        star_cx, star_cy = 195, 150
+        star_r, star_ir = 90, 38
         star_pts = []
         for i in range(10):
             angle = math.radians(-90 + i * 36)
@@ -169,45 +170,41 @@ class _TexasPlateRenderer:
                              star_cy + r * math.sin(angle)))
         draw.polygon(star_pts, fill=black)
 
-        # ── "TEXAS" — top area, right of the star ──
-        texas_font = _plate_font(80)
-        draw.text((490, 72), "TEXAS", fill=black, font=texas_font, anchor='mm')
+        # ── "TEXAS" — top center-right ──
+        texas_font = _plate_font(156)
+        draw.text((970, 140), "TEXAS", fill=black, font=texas_font, anchor='mm')
 
         # ── Bolt holes — 4 corners ──
-        bolt_positions = [(52, 42), (W - 52, 42), (52, H - 42), (W - 52, H - 42)]
+        bolt_positions = [(100, 80), (W - 100, 80), (100, H - 80), (W - 100, H - 80)]
         for bx, by in bolt_positions:
-            # Outer ring
-            draw.ellipse([bx - 14, by - 14, bx + 14, by + 14],
-                         fill=white_bolt, outline=bolt_shadow, width=2)
-            # Slot
-            draw.rounded_rectangle([bx - 8, by - 3, bx + 8, by + 3],
-                                   radius=2, fill=bolt_shadow)
+            draw.ellipse([bx - 26, by - 26, bx + 26, by + 26],
+                         fill=bolt_bg, outline=bolt_rim, width=3)
+            draw.rounded_rectangle([bx - 14, by - 5, bx + 14, by + 5],
+                                   radius=3, fill=bolt_rim)
 
-        # ── Decorative wavy vertical lines (the DNA helix pattern) ──
-        for base_x in [260, 620]:
-            for y in range(20, H - 20, 3):
-                offset = math.sin(y * 0.06) * 12
-                c = (190, 195, 200, 100)
-                draw.ellipse([base_x + offset - 1, y - 1,
-                              base_x + offset + 1, y + 1], fill=c)
+        # ── Decorative wavy lines ──
+        for base_x in [520, 1240]:
+            for y in range(30, H - 30, 4):
+                offset = math.sin(y * 0.03) * 22
+                c = (185, 192, 198, 80)
+                draw.ellipse([base_x + offset - 2, y - 2,
+                              base_x + offset + 2, y + 2], fill=c)
 
-        # ── Main plate number — centered in plate body ──
-        # Split: "ABC-1234" → "ABC" ★ "1234"
+        # ── Main plate number ──
         if '-' in plate_text:
             left_text, right_text = plate_text.split('-', 1)
         else:
             left_text = plate_text[:3]
             right_text = plate_text[3:]
 
-        plate_font = _plate_font(128)
-        center_y = 240
+        plate_font = _plate_font(250)
+        center_y = 480
 
-        # Measure to position around small star separator
         left_bbox = draw.textbbox((0, 0), left_text, font=plate_font)
         right_bbox = draw.textbbox((0, 0), right_text, font=plate_font)
         left_w = left_bbox[2] - left_bbox[0]
         right_w = right_bbox[2] - right_bbox[0]
-        star_gap = 62
+        star_gap = 120
         total_w = left_w + star_gap + right_w
         start_x = (W - total_w) // 2
 
@@ -215,20 +212,20 @@ class _TexasPlateRenderer:
         draw.text((start_x + left_w // 2, center_y), left_text,
                   fill=black, font=plate_font, anchor='mm')
 
-        # Small star separator with Texas outline inside
+        # Star separator
         sep_cx = start_x + left_w + star_gap // 2
         sep_cy = center_y
-        sep_r, sep_ir = 18, 7
+        sep_r, sep_ir = 34, 14
         sep_pts = []
         for i in range(10):
             angle = math.radians(-90 + i * 36)
             r = sep_r if i % 2 == 0 else sep_ir
             sep_pts.append((sep_cx + r * math.cos(angle),
                             sep_cy + r * math.sin(angle)))
-        draw.polygon(sep_pts, fill=None, outline=black, width=2)
+        draw.polygon(sep_pts, fill=None, outline=black, width=4)
 
-        # Texas state shape inside separator star
-        tx_scale = 0.20
+        # Texas shape inside separator
+        tx_scale = 0.38
         tx_raw = [
             (-30, -28), (-30, 2), (-18, 2), (-18, 18), (-8, 28),
             (4, 28), (10, 18), (18, 18), (26, 8), (30, 2),
@@ -242,9 +239,9 @@ class _TexasPlateRenderer:
         draw.text((start_x + left_w + star_gap + right_w // 2, center_y),
                   right_text, fill=black, font=plate_font, anchor='mm')
 
-        # ── "The Lone Star State" — bottom left area ──
-        tagline_font = _plate_font(30)
-        draw.text((W // 2 - 60, H - 52), "The Lone Star State",
+        # ── "The Lone Star State" — bottom ──
+        tagline_font = _plate_font(56)
+        draw.text((W // 2 - 100, H - 95), "The Lone Star State",
                   fill=black, font=tagline_font, anchor='mm')
 
         return img.convert('RGBA')
