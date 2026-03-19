@@ -12,6 +12,7 @@ from tkinter import ttk, messagebox
 from datetime import datetime, timezone
 from PIL import Image, ImageTk
 import threading
+import customtkinter as ctk
 
 if getattr(sys, 'frozen', False):
     _BASE_DIR = os.path.dirname(sys.executable)
@@ -26,9 +27,9 @@ WEATHER_OPTIONS = ['None', 'Rain', 'Snow', 'Fog', 'IR']
 PLATE_SOURCES = ['random', 'list', 'mixed']
 
 
-class TemplatesMode(tk.Frame):
+class TemplatesMode(ctk.CTkFrame):
     def __init__(self, parent, state, app):
-        super().__init__(parent, bg='#0d0d14')
+        super().__init__(parent, fg_color='#0d0d14')
         self.state = state
         self.app = app
         self._preview_photo = None
@@ -40,44 +41,54 @@ class TemplatesMode(tk.Frame):
     def _show_browser(self):
         self._clear()
 
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
-        tk.Label(top, text="Templates", font=('Segoe UI', 16, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text="Templates", font=('Segoe UI', 16, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="+ New Template", font=('Segoe UI', 10),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
-                  cursor='hand2', command=self._show_builder).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="+ New Template", font=('Segoe UI', 10),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2a4f7a',
+                      corner_radius=8, command=self._show_builder).pack(side=tk.RIGHT)
 
         # Filter bar
-        fbar = tk.Frame(self, bg='#0d0d14')
+        fbar = ctk.CTkFrame(self, fg_color='#0d0d14')
         fbar.pack(fill=tk.X, padx=16, pady=(4, 8))
 
-        tk.Label(fbar, text="Sort:", fg='#e0e0e8', bg='#0d0d14',
-                 font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(0, 4))
+        ctk.CTkLabel(fbar, text="Sort:", text_color='#e0e0e8', fg_color="transparent",
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(0, 4))
         self._sort_var = tk.StringVar(value='name')
-        ttk.Combobox(fbar, textvariable=self._sort_var,
-                     values=['name', 'created', 'last_used', 'vault_count'],
-                     state='readonly', width=12).pack(side=tk.LEFT)
+        sort_combo = ctk.CTkComboBox(fbar, variable=self._sort_var,
+                                     values=['name', 'created', 'last_used', 'vault_count'],
+                                     state='readonly', width=120, fg_color="#242438",
+                                     border_color="#2d2d44", button_color="#1e3a5f",
+                                     dropdown_fg_color="#242438", dropdown_text_color="#e0e0e8",
+                                     text_color="#e0e0e8")
+        sort_combo.pack(side=tk.LEFT)
         self._sort_var.trace_add('write', lambda *_: self._refresh_list())
 
-        tk.Label(fbar, text="Search:", fg='#e0e0e8', bg='#0d0d14',
-                 font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
+        ctk.CTkLabel(fbar, text="Search:", text_color='#e0e0e8', fg_color="transparent",
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._search_var = tk.StringVar()
         self._search_var.trace_add('write', lambda *_: self._refresh_list())
-        tk.Entry(fbar, textvariable=self._search_var, width=20,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 9)).pack(side=tk.LEFT)
+        ctk.CTkEntry(fbar, textvariable=self._search_var, width=160,
+                     fg_color="#242438", text_color="#e0e0e8",
+                     border_color="#2d2d44", font=('Segoe UI', 9)).pack(side=tk.LEFT)
 
         # Bulk action buttons
-        tk.Button(fbar, text="Delete Selected", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#dc2626', bd=0, padx=8, pady=2,
-                  cursor='hand2', command=self._delete_selected).pack(side=tk.RIGHT, padx=4)
+        ctk.CTkButton(fbar, text="Delete Selected", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#dc2626', hover_color='#b91c1c',
+                      corner_radius=8, command=self._delete_selected).pack(side=tk.RIGHT, padx=4)
 
-        # Template list
-        list_frame = tk.Frame(self, bg='#0d0d14')
+        # Template list — ttk.Treeview with dark styling
+        list_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 12))
+
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure('Treeview', background='#1a1a2e', foreground='#e0e0e8', fieldbackground='#1a1a2e', rowheight=28)
+        style.configure('Treeview.Heading', background='#242438', foreground='#e0e0e8')
+        style.map('Treeview', background=[('selected', '#1e3a5f')])
 
         cols = ('name', 'vehicle', 'state', 'plate_source', 'vault_count', 'created')
         self._tree = ttk.Treeview(list_frame, columns=cols, show='headings', selectmode='extended')
@@ -171,38 +182,39 @@ class TemplatesMode(tk.Frame):
         self._clear()
         self._edit_template = edit_template
 
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         title = "Edit Template" if edit_template else "New Template"
-        tk.Label(top, text=title, font=('Segoe UI', 14, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text=title, font=('Segoe UI', 14, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="< Back", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=self._show_browser).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="< Back", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d54',
+                      corner_radius=8, command=self._show_browser).pack(side=tk.RIGHT)
 
         # Main layout: left = form, right = preview
-        main = tk.Frame(self, bg='#0d0d14')
+        main = ctk.CTkFrame(self, fg_color='#0d0d14')
         main.pack(fill=tk.BOTH, expand=True, padx=16, pady=8)
 
-        form_frame = tk.Frame(main, bg='#0d0d14')
+        form_frame = ctk.CTkFrame(main, fg_color='#0d0d14')
         form_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 16))
 
-        preview_frame = tk.Frame(main, bg='#0d0d14', highlightbackground='#2d2d44',
-                                 highlightthickness=1)
+        preview_frame = ctk.CTkFrame(main, fg_color='#0d0d14', border_color='#2d2d44',
+                                     border_width=1)
         preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        self._preview_label = tk.Label(preview_frame, text="Select a vehicle to preview",
-                                       fg='#555570', bg='#0d0d14', font=('Segoe UI', 11))
+        self._preview_label = ctk.CTkLabel(preview_frame, text="Select a vehicle to preview",
+                                           text_color='#555570', fg_color="transparent",
+                                           font=('Segoe UI', 11))
         self._preview_label.pack(expand=True)
 
         # Form fields
         row = 0
 
         # Vehicle picker
-        tk.Label(form_frame, text="Vehicle:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
+        ctk.CTkLabel(form_frame, text="Vehicle:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=4)
         row += 1
 
         # Build vehicle options from asset cache
@@ -214,15 +226,18 @@ class TemplatesMode(tk.Frame):
             vehicle_labels.append(label)
 
         self._vehicle_var = tk.StringVar()
-        vehicle_combo = ttk.Combobox(form_frame, textvariable=self._vehicle_var,
-                                     values=vehicle_labels, state='readonly', width=35)
+        vehicle_combo = ctk.CTkComboBox(form_frame, variable=self._vehicle_var,
+                                        values=vehicle_labels, state='readonly', width=280,
+                                        fg_color="#242438", border_color="#2d2d44",
+                                        button_color="#1e3a5f", dropdown_fg_color="#242438",
+                                        dropdown_text_color="#e0e0e8", text_color="#e0e0e8",
+                                        command=lambda _: self._schedule_preview())
         vehicle_combo.grid(row=row, column=0, sticky='w', pady=2)
-        vehicle_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_preview())
         row += 1
 
         # State plate
-        tk.Label(form_frame, text="State Plate:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
+        ctk.CTkLabel(form_frame, text="State Plate:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
 
         from engine.plate_renderer import PlateRenderer
@@ -230,114 +245,128 @@ class TemplatesMode(tk.Frame):
         states = self._builder_renderer.available_states()
 
         self._state_var = tk.StringVar(value=states[0] if states else 'texas')
-        state_combo = ttk.Combobox(form_frame, textvariable=self._state_var,
-                                   values=[s.title() for s in states], state='readonly', width=20)
+        state_combo = ctk.CTkComboBox(form_frame, variable=self._state_var,
+                                      values=[s.title() for s in states], state='readonly', width=180,
+                                      fg_color="#242438", border_color="#2d2d44",
+                                      button_color="#1e3a5f", dropdown_fg_color="#242438",
+                                      dropdown_text_color="#e0e0e8", text_color="#e0e0e8",
+                                      command=lambda _: self._schedule_preview())
         state_combo.grid(row=row, column=0, sticky='w', pady=2)
-        state_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_preview())
         row += 1
 
         # Lighting override
-        tk.Label(form_frame, text="Lighting:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
+        ctk.CTkLabel(form_frame, text="Lighting:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._lighting_var = tk.StringVar(value='Inherit from Asset')
-        light_combo = ttk.Combobox(form_frame, textvariable=self._lighting_var,
-                                   values=LIGHTING_OPTIONS, state='readonly', width=20)
+        light_combo = ctk.CTkComboBox(form_frame, variable=self._lighting_var,
+                                      values=LIGHTING_OPTIONS, state='readonly', width=180,
+                                      fg_color="#242438", border_color="#2d2d44",
+                                      button_color="#1e3a5f", dropdown_fg_color="#242438",
+                                      dropdown_text_color="#e0e0e8", text_color="#e0e0e8",
+                                      command=lambda _: self._schedule_preview())
         light_combo.grid(row=row, column=0, sticky='w', pady=2)
-        light_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_preview())
         row += 1
 
         # Weather override
-        tk.Label(form_frame, text="Weather:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
+        ctk.CTkLabel(form_frame, text="Weather:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._weather_var = tk.StringVar(value='None')
-        weather_combo = ttk.Combobox(form_frame, textvariable=self._weather_var,
-                                     values=WEATHER_OPTIONS, state='readonly', width=20)
+        weather_combo = ctk.CTkComboBox(form_frame, variable=self._weather_var,
+                                        values=WEATHER_OPTIONS, state='readonly', width=180,
+                                        fg_color="#242438", border_color="#2d2d44",
+                                        button_color="#1e3a5f", dropdown_fg_color="#242438",
+                                        dropdown_text_color="#e0e0e8", text_color="#e0e0e8",
+                                        command=lambda _: self._schedule_preview())
         weather_combo.grid(row=row, column=0, sticky='w', pady=2)
-        weather_combo.bind('<<ComboboxSelected>>', lambda e: self._schedule_preview())
         row += 1
 
         # Zoom slider
-        tk.Label(form_frame, text="Zoom:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
+        ctk.CTkLabel(form_frame, text="Zoom:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._zoom_var = tk.DoubleVar(value=1.0)
-        zoom_frame = tk.Frame(form_frame, bg='#0d0d14')
+        zoom_frame = ctk.CTkFrame(form_frame, fg_color='#0d0d14')
         zoom_frame.grid(row=row, column=0, sticky='w', pady=2)
-        self._zoom_label = tk.Label(zoom_frame, text="1.0x", font=('Segoe UI', 9),
-                                    fg='#e0e0e8', bg='#0d0d14', width=4)
+        self._zoom_label = ctk.CTkLabel(zoom_frame, text="1.0x", font=('Segoe UI', 9),
+                                        text_color='#e0e0e8', fg_color="transparent", width=40)
         self._zoom_label.pack(side=tk.RIGHT)
-        zoom_scale = tk.Scale(zoom_frame, from_=0.5, to=3.0, resolution=0.1,
-                              orient=tk.HORIZONTAL, variable=self._zoom_var,
-                              bg='#0d0d14', fg='#e0e0e8', highlightthickness=0,
-                              troughcolor='#1a1a2e', length=200, showvalue=False,
-                              command=lambda v: (self._zoom_label.config(text=f"{float(v):.1f}x"),
-                                                 self._schedule_preview()))
-        zoom_scale.pack(side=tk.LEFT)
+        zoom_slider = ctk.CTkSlider(zoom_frame, from_=0.5, to=3.0,
+                                    variable=self._zoom_var, width=200,
+                                    fg_color="#2d2d44", button_color="#1e3a5f",
+                                    progress_color="#1e3a5f",
+                                    command=lambda v: (self._zoom_label.configure(text=f"{float(v):.1f}x"),
+                                                       self._schedule_preview()))
+        zoom_slider.pack(side=tk.LEFT)
         row += 1
 
         # Plate source
-        tk.Label(form_frame, text="Plate Source:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
+        ctk.CTkLabel(form_frame, text="Plate Source:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._plate_source_var = tk.StringVar(value='random')
-        ps_frame = tk.Frame(form_frame, bg='#0d0d14')
+        ps_frame = ctk.CTkFrame(form_frame, fg_color='#0d0d14')
         ps_frame.grid(row=row, column=0, sticky='w', pady=2)
         for ps in PLATE_SOURCES:
-            tk.Radiobutton(ps_frame, text=ps.title(), variable=self._plate_source_var,
-                           value=ps, fg='#e0e0e8', bg='#0d0d14', selectcolor='#1a1a2e',
-                           activebackground='#0d0d14', activeforeground='#e0e0e8',
-                           ).pack(side=tk.LEFT, padx=4)
+            ctk.CTkRadioButton(ps_frame, text=ps.title(), variable=self._plate_source_var,
+                               value=ps, fg_color="#1e3a5f", text_color="#e0e0e8",
+                               border_color="#2d2d44", hover_color="#2a4f7a"
+                               ).pack(side=tk.LEFT, padx=4)
         row += 1
 
         # Mix ratio (shown only for mixed)
         self._ratio_var = tk.DoubleVar(value=0.3)
-        ratio_frame = tk.Frame(form_frame, bg='#0d0d14')
+        ratio_frame = ctk.CTkFrame(form_frame, fg_color='#0d0d14')
         ratio_frame.grid(row=row, column=0, sticky='w', pady=2)
-        tk.Label(ratio_frame, text="List ratio:", font=('Segoe UI', 9),
-                 fg='#8888a0', bg='#0d0d14').pack(side=tk.LEFT)
-        tk.Scale(ratio_frame, from_=0.0, to=1.0, resolution=0.05,
-                 orient=tk.HORIZONTAL, variable=self._ratio_var,
-                 bg='#0d0d14', fg='#e0e0e8', highlightthickness=0,
-                 troughcolor='#1a1a2e', length=150, showvalue=True).pack(side=tk.LEFT)
+        ctk.CTkLabel(ratio_frame, text="List ratio:", font=('Segoe UI', 9),
+                     text_color='#8888a0', fg_color="transparent").pack(side=tk.LEFT)
+        self._ratio_label = ctk.CTkLabel(ratio_frame, text="0.30", font=('Segoe UI', 9),
+                                         text_color='#e0e0e8', fg_color="transparent", width=35)
+        self._ratio_label.pack(side=tk.RIGHT)
+        ctk.CTkSlider(ratio_frame, from_=0.0, to=1.0,
+                      variable=self._ratio_var, width=150,
+                      fg_color="#2d2d44", button_color="#1e3a5f",
+                      progress_color="#1e3a5f",
+                      command=lambda v: self._ratio_label.configure(text=f"{float(v):.2f}")
+                      ).pack(side=tk.LEFT)
         row += 1
 
         # Locked plate
-        tk.Label(form_frame, text="Locked Plate (optional):", font=('Segoe UI', 10),
-                 fg='#8888a0', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
+        ctk.CTkLabel(form_frame, text="Locked Plate (optional):", font=('Segoe UI', 10),
+                     text_color='#8888a0', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._locked_plate_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=self._locked_plate_var, width=15,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
+        ctk.CTkEntry(form_frame, textvariable=self._locked_plate_var, width=150,
+                     fg_color="#242438", text_color="#e0e0e8",
+                     border_color="#2d2d44", font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Tags
-        tk.Label(form_frame, text="Tags (comma separated):", font=('Segoe UI', 10),
-                 fg='#8888a0', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
+        ctk.CTkLabel(form_frame, text="Tags (comma separated):", font=('Segoe UI', 10),
+                     text_color='#8888a0', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._tags_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=self._tags_var, width=30,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
+        ctk.CTkEntry(form_frame, textvariable=self._tags_var, width=240,
+                     fg_color="#242438", text_color="#e0e0e8",
+                     border_color="#2d2d44", font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Name
-        tk.Label(form_frame, text="Template Name:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
+        ctk.CTkLabel(form_frame, text="Template Name:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._name_var = tk.StringVar()
-        tk.Entry(form_frame, textvariable=self._name_var, width=30,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
+        ctk.CTkEntry(form_frame, textvariable=self._name_var, width=240,
+                     fg_color="#242438", text_color="#e0e0e8",
+                     border_color="#2d2d44", font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Save button
-        tk.Button(form_frame, text="Save Template", font=('Segoe UI', 11, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=16, pady=8,
-                  cursor='hand2', command=self._save_template
-                  ).grid(row=row, column=0, sticky='w', pady=(16, 0))
+        ctk.CTkButton(form_frame, text="Save Template", font=('Segoe UI', 11, 'bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2a4f7a',
+                      corner_radius=8, command=self._save_template
+                      ).grid(row=row, column=0, sticky='w', pady=(16, 0))
 
         # If editing, populate fields
         if edit_template:
@@ -364,10 +393,11 @@ class TemplatesMode(tk.Frame):
         self._weather_var.set(wo.title() if wo else 'None')
 
         self._zoom_var.set(t.get('zoom', 1.0))
-        self._zoom_label.config(text=f"{t.get('zoom', 1.0):.1f}x")
+        self._zoom_label.configure(text=f"{t.get('zoom', 1.0):.1f}x")
 
         self._plate_source_var.set(t.get('plate_source', 'random'))
         self._ratio_var.set(t.get('mix_ratio', 0.3))
+        self._ratio_label.configure(text=f"{t.get('mix_ratio', 0.3):.2f}")
         self._locked_plate_var.set(t.get('locked_plate', '') or '')
         self._tags_var.set(', '.join(t.get('tags', [])))
         self._name_var.set(t.get('name', ''))

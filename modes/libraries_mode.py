@@ -8,7 +8,8 @@ import os
 import sys
 import uuid
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox
+import customtkinter as ctk
 from datetime import datetime, timezone
 
 if getattr(sys, 'frozen', False):
@@ -17,9 +18,9 @@ else:
     _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 
 
-class LibrariesMode(tk.Frame):
+class LibrariesMode(ctk.CTkFrame):
     def __init__(self, parent, state, app):
-        super().__init__(parent, bg='#0d0d14')
+        super().__init__(parent, fg_color='#0d0d14')
         self.state = state
         self.app = app
         self._show_browser()
@@ -29,88 +30,89 @@ class LibrariesMode(tk.Frame):
     def _show_browser(self):
         self._clear()
 
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
-        tk.Label(top, text="Libraries", font=('Segoe UI', 16, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text="Libraries", font=('Segoe UI', 16, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="+ New Library", font=('Segoe UI', 10),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
-                  cursor='hand2', command=self._show_builder).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="+ New Library", font=('Segoe UI', 10),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
+                      corner_radius=8, cursor='hand2',
+                      command=self._show_builder).pack(side=tk.RIGHT)
 
         if not self.state.libraries:
-            tk.Label(self, text="No libraries yet.\nCreate one to group your templates for demos.",
-                     font=('Segoe UI', 12), fg='#555570', bg='#0d0d14',
-                     justify=tk.CENTER).pack(expand=True)
+            ctk.CTkLabel(self, text="No libraries yet.\nCreate one to group your templates for demos.",
+                         font=('Segoe UI', 12), text_color='#555570', fg_color="transparent",
+                         justify=tk.CENTER).pack(expand=True)
             return
 
         # Library list
-        list_frame = tk.Frame(self, bg='#0d0d14')
+        list_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(8, 12))
 
         for lib in self.state.libraries:
-            card = tk.Frame(list_frame, bg='#242438', highlightbackground='#2d2d44',
-                            highlightthickness=1, cursor='hand2')
+            card = ctk.CTkFrame(list_frame, fg_color='#242438', border_color='#2d2d44',
+                                border_width=1, corner_radius=8, cursor='hand2')
             card.pack(fill=tk.X, pady=4)
 
             # Info
-            info = tk.Frame(card, bg='#242438')
+            info = ctk.CTkFrame(card, fg_color='#242438')
             info.pack(fill=tk.X, padx=12, pady=8)
 
-            tk.Label(info, text=lib.get('name', 'Unnamed'),
-                     font=('Segoe UI', 12, 'bold'), fg='#e0e0e8', bg='#242438'
-                     ).pack(anchor='w')
+            ctk.CTkLabel(info, text=lib.get('name', 'Unnamed'),
+                         font=('Segoe UI', 12, 'bold'), text_color='#e0e0e8',
+                         fg_color="transparent").pack(anchor='w')
 
             desc = lib.get('description', '')
             if desc:
-                tk.Label(info, text=desc, font=('Segoe UI', 9),
-                         fg='#8888a0', bg='#242438', wraplength=600, anchor='w'
-                         ).pack(anchor='w')
+                ctk.CTkLabel(info, text=desc, font=('Segoe UI', 9),
+                             text_color='#8888a0', fg_color="transparent",
+                             wraplength=600, anchor='w').pack(anchor='w')
 
             # Stats row
-            stats = tk.Frame(info, bg='#242438')
+            stats = ctk.CTkFrame(info, fg_color='#242438')
             stats.pack(anchor='w', pady=(4, 0))
 
             template_count = len(lib.get('template_ids', []))
-            tk.Label(stats, text=f"{template_count} templates",
-                     font=('Segoe UI', 8), fg='#1e3a5f', bg='#242438'
-                     ).pack(side=tk.LEFT, padx=(0, 12))
+            ctk.CTkLabel(stats, text=f"{template_count} templates",
+                         font=('Segoe UI', 8), text_color='#1e3a5f',
+                         fg_color="transparent").pack(side=tk.LEFT, padx=(0, 12))
 
-            tk.Label(stats, text=f"Cycle: {lib.get('cycle_mode', 'sequential')}",
-                     font=('Segoe UI', 8), fg='#8888a0', bg='#242438'
-                     ).pack(side=tk.LEFT, padx=(0, 12))
+            ctk.CTkLabel(stats, text=f"Cycle: {lib.get('cycle_mode', 'sequential')}",
+                         font=('Segoe UI', 8), text_color='#8888a0',
+                         fg_color="transparent").pack(side=tk.LEFT, padx=(0, 12))
 
             last_run = lib.get('last_run', '')
             if last_run:
-                tk.Label(stats, text=f"Last run: {last_run[:10]}",
-                         font=('Segoe UI', 8), fg='#8888a0', bg='#242438'
-                         ).pack(side=tk.LEFT)
+                ctk.CTkLabel(stats, text=f"Last run: {last_run[:10]}",
+                             font=('Segoe UI', 8), text_color='#8888a0',
+                             fg_color="transparent").pack(side=tk.LEFT)
 
             # Action buttons
-            btn_frame = tk.Frame(card, bg='#242438')
+            btn_frame = ctk.CTkFrame(card, fg_color='#242438')
             btn_frame.pack(fill=tk.X, padx=12, pady=(0, 8))
 
             lib_id = lib['id']
-            tk.Button(btn_frame, text="Launch Demo", font=('Segoe UI', 9, 'bold'),
-                      fg='#ffffff', bg='#1e3a5f', bd=0, padx=10, pady=3,
-                      cursor='hand2',
-                      command=lambda lid=lib_id: self._launch_demo(lid)).pack(side=tk.LEFT, padx=4)
+            ctk.CTkButton(btn_frame, text="Launch Demo", font=('Segoe UI', 9, 'bold'),
+                          text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
+                          corner_radius=8, cursor='hand2',
+                          command=lambda lid=lib_id: self._launch_demo(lid)).pack(side=tk.LEFT, padx=4)
 
-            tk.Button(btn_frame, text="Edit", font=('Segoe UI', 9),
-                      fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=3,
-                      cursor='hand2',
-                      command=lambda lid=lib_id: self._edit_library(lid)).pack(side=tk.LEFT, padx=4)
+            ctk.CTkButton(btn_frame, text="Edit", font=('Segoe UI', 9),
+                          text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
+                          corner_radius=8, cursor='hand2',
+                          command=lambda lid=lib_id: self._edit_library(lid)).pack(side=tk.LEFT, padx=4)
 
-            tk.Button(btn_frame, text="Duplicate", font=('Segoe UI', 9),
-                      fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=3,
-                      cursor='hand2',
-                      command=lambda lid=lib_id: self._duplicate_library(lid)).pack(side=tk.LEFT, padx=4)
+            ctk.CTkButton(btn_frame, text="Duplicate", font=('Segoe UI', 9),
+                          text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
+                          corner_radius=8, cursor='hand2',
+                          command=lambda lid=lib_id: self._duplicate_library(lid)).pack(side=tk.LEFT, padx=4)
 
-            tk.Button(btn_frame, text="Delete", font=('Segoe UI', 9),
-                      fg='#ffffff', bg='#dc2626', bd=0, padx=10, pady=3,
-                      cursor='hand2',
-                      command=lambda lid=lib_id: self._delete_library(lid)).pack(side=tk.LEFT, padx=4)
+            ctk.CTkButton(btn_frame, text="Delete", font=('Segoe UI', 9),
+                          text_color='#ffffff', fg_color='#dc2626', hover_color='#b91c1c',
+                          corner_radius=8, cursor='hand2',
+                          command=lambda lid=lib_id: self._delete_library(lid)).pack(side=tk.LEFT, padx=4)
 
     def _launch_demo(self, library_id: str):
         """Switch to Demo Mode with this library pre-selected."""
@@ -156,113 +158,130 @@ class LibrariesMode(tk.Frame):
         self._clear()
         self._edit_library = edit_library
 
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         title = "Edit Library" if edit_library else "New Library"
-        tk.Label(top, text=title, font=('Segoe UI', 14, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text=title, font=('Segoe UI', 14, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="< Back", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=self._show_browser).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="< Back", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
+                      corner_radius=8, cursor='hand2',
+                      command=self._show_browser).pack(side=tk.RIGHT)
 
         # Name / Description
-        meta_frame = tk.Frame(self, bg='#0d0d14')
+        meta_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         meta_frame.pack(fill=tk.X, padx=16, pady=(8, 4))
 
-        tk.Label(meta_frame, text="Name:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(meta_frame, text="Name:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
         self._lib_name_var = tk.StringVar(value=edit_library.get('name', '') if edit_library else '')
-        tk.Entry(meta_frame, textvariable=self._lib_name_var, width=30,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=8)
+        ctk.CTkEntry(meta_frame, textvariable=self._lib_name_var, width=250,
+                     fg_color='#242438', text_color='#e0e0e8',
+                     border_color='#2d2d44', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=8)
 
-        tk.Label(meta_frame, text="Cycle:", font=('Segoe UI', 10, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT, padx=(16, 4))
+        ctk.CTkLabel(meta_frame, text="Cycle:", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT, padx=(16, 4))
         self._cycle_var = tk.StringVar(value=edit_library.get('cycle_mode', 'sequential') if edit_library else 'sequential')
-        ttk.Combobox(meta_frame, textvariable=self._cycle_var,
-                     values=['sequential', 'random'], state='readonly', width=12).pack(side=tk.LEFT)
+        ctk.CTkComboBox(meta_frame, variable=self._cycle_var,
+                        values=['sequential', 'random'], state='readonly', width=120,
+                        fg_color='#242438', text_color='#e0e0e8',
+                        border_color='#2d2d44', button_color='#2d2d44',
+                        dropdown_fg_color='#242438', dropdown_text_color='#e0e0e8',
+                        dropdown_hover_color='#1e3a5f').pack(side=tk.LEFT)
 
-        desc_frame = tk.Frame(self, bg='#0d0d14')
+        desc_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         desc_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
-        tk.Label(desc_frame, text="Description:", font=('Segoe UI', 10),
-                 fg='#8888a0', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(desc_frame, text="Description:", font=('Segoe UI', 10),
+                     text_color='#8888a0', fg_color="transparent").pack(side=tk.LEFT)
         self._lib_desc_var = tk.StringVar(value=edit_library.get('description', '') if edit_library else '')
-        tk.Entry(desc_frame, textvariable=self._lib_desc_var, width=60,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=8)
+        ctk.CTkEntry(desc_frame, textvariable=self._lib_desc_var, width=500,
+                     fg_color='#242438', text_color='#e0e0e8',
+                     border_color='#2d2d44', font=('Segoe UI', 10)).pack(side=tk.LEFT, padx=8)
 
         # Main: left = available templates, right = library contents
-        main = tk.Frame(self, bg='#0d0d14')
+        main = ctk.CTkFrame(self, fg_color='#0d0d14')
         main.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         # Left: available templates
-        left = tk.LabelFrame(main, text="Available Templates", fg='#e0e0e8',
-                              bg='#0d0d14', font=('Segoe UI', 10, 'bold'))
+        left = ctk.CTkFrame(main, fg_color='#0d0d14')
         left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
 
+        ctk.CTkLabel(left, text="Available Templates", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(anchor='w', padx=4, pady=(4, 2))
+
         # Filter
-        filter_bar = tk.Frame(left, bg='#0d0d14')
+        filter_bar = ctk.CTkFrame(left, fg_color='#0d0d14')
         filter_bar.pack(fill=tk.X, padx=4, pady=4)
         self._tpl_search = tk.StringVar()
         self._tpl_search.trace_add('write', lambda *_: self._refresh_available())
-        tk.Entry(filter_bar, textvariable=self._tpl_search, width=25,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=4)
-        tk.Label(filter_bar, text="(search)", fg='#555570', bg='#0d0d14',
-                 font=('Segoe UI', 8)).pack(side=tk.LEFT)
+        ctk.CTkEntry(filter_bar, textvariable=self._tpl_search, width=200,
+                     fg_color='#242438', text_color='#e0e0e8',
+                     border_color='#2d2d44', font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=4)
+        ctk.CTkLabel(filter_bar, text="(search)", text_color='#555570', fg_color="transparent",
+                     font=('Segoe UI', 8)).pack(side=tk.LEFT)
 
         self._avail_listbox = tk.Listbox(left, bg='#1a1a2e', fg='#e0e0e8',
                                           selectbackground='#1e3a5f',
                                           selectforeground='#ffffff',
-                                          font=('Segoe UI', 9), selectmode=tk.EXTENDED)
+                                          font=('Segoe UI', 9), selectmode=tk.EXTENDED,
+                                          bd=0, highlightthickness=0)
         self._avail_listbox.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
 
-        add_btn_frame = tk.Frame(left, bg='#0d0d14')
+        add_btn_frame = ctk.CTkFrame(left, fg_color='#0d0d14')
         add_btn_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
-        tk.Button(add_btn_frame, text="Add Selected >>", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=10, pady=3,
-                  cursor='hand2', command=self._add_selected).pack(side=tk.LEFT)
-        tk.Button(add_btn_frame, text="Add All Filtered >>", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=10, pady=3,
-                  cursor='hand2', command=self._add_all_filtered).pack(side=tk.LEFT, padx=4)
+        ctk.CTkButton(add_btn_frame, text="Add Selected >>", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
+                      corner_radius=8, cursor='hand2',
+                      command=self._add_selected).pack(side=tk.LEFT)
+        ctk.CTkButton(add_btn_frame, text="Add All Filtered >>", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
+                      corner_radius=8, cursor='hand2',
+                      command=self._add_all_filtered).pack(side=tk.LEFT, padx=4)
 
         # Right: library contents
-        right = tk.LabelFrame(main, text="Library Contents (ordered)", fg='#e0e0e8',
-                               bg='#0d0d14', font=('Segoe UI', 10, 'bold'))
+        right = ctk.CTkFrame(main, fg_color='#0d0d14')
         right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(8, 0))
+
+        ctk.CTkLabel(right, text="Library Contents (ordered)", font=('Segoe UI', 10, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(anchor='w', padx=4, pady=(4, 2))
 
         self._lib_listbox = tk.Listbox(right, bg='#1a1a2e', fg='#e0e0e8',
                                         selectbackground='#1e3a5f',
                                         selectforeground='#ffffff',
-                                        font=('Segoe UI', 9), selectmode=tk.SINGLE)
+                                        font=('Segoe UI', 9), selectmode=tk.SINGLE,
+                                        bd=0, highlightthickness=0)
         self._lib_listbox.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
 
-        order_frame = tk.Frame(right, bg='#0d0d14')
+        order_frame = ctk.CTkFrame(right, fg_color='#0d0d14')
         order_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
 
-        tk.Button(order_frame, text="Up", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=8, pady=2,
-                  cursor='hand2', command=self._move_up).pack(side=tk.LEFT, padx=2)
-        tk.Button(order_frame, text="Down", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=8, pady=2,
-                  cursor='hand2', command=self._move_down).pack(side=tk.LEFT, padx=2)
-        tk.Button(order_frame, text="Remove", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#dc2626', bd=0, padx=8, pady=2,
-                  cursor='hand2', command=self._remove_selected).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(order_frame, text="Up", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
+                      corner_radius=8, cursor='hand2',
+                      command=self._move_up).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(order_frame, text="Down", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
+                      corner_radius=8, cursor='hand2',
+                      command=self._move_down).pack(side=tk.LEFT, padx=2)
+        ctk.CTkButton(order_frame, text="Remove", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#dc2626', hover_color='#b91c1c',
+                      corner_radius=8, cursor='hand2',
+                      command=self._remove_selected).pack(side=tk.LEFT, padx=2)
 
         # Save button
-        tk.Button(self, text="Save Library", font=('Segoe UI', 11, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=20, pady=8,
-                  cursor='hand2', command=self._save_library).pack(pady=(4, 12))
+        ctk.CTkButton(self, text="Save Library", font=('Segoe UI', 11, 'bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
+                      corner_radius=8, cursor='hand2',
+                      command=self._save_library).pack(pady=(4, 12))
 
         # Track template IDs in library order
         self._lib_template_ids: list[str] = []
         if edit_library:
             self._lib_template_ids = list(edit_library.get('template_ids', []))
 
-        self._avail_template_map: dict[int, str] = {}  # listbox index → template id
+        self._avail_template_map: dict[int, str] = {}  # listbox index -> template id
         self._refresh_available()
         self._refresh_lib_list()
 

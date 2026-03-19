@@ -6,9 +6,10 @@ import json
 import os
 import sys
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
 from datetime import datetime, timezone
 from PIL import Image, ImageTk, ImageDraw
+import customtkinter as ctk
 
 if getattr(sys, 'frozen', False):
     _BASE_DIR = os.path.dirname(sys.executable)
@@ -26,9 +27,9 @@ THUMB_W, THUMB_H = 200, 133
 CANVAS_W, CANVAS_H = 900, 600
 
 
-class AssetsMode(tk.Frame):
+class AssetsMode(ctk.CTkFrame):
     def __init__(self, parent, state, app):
-        super().__init__(parent, bg='#0d0d14')
+        super().__init__(parent, fg_color='#0d0d14')
         self.state = state
         self.app = app
         self._thumbnails: dict[int, ImageTk.PhotoImage] = {}
@@ -47,18 +48,19 @@ class AssetsMode(tk.Frame):
         self._view = 'browser'
 
         # Top bar: title + add button
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
-        tk.Label(top, text="Vehicle Assets", font=('Segoe UI', 16, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text="Vehicle Assets", font=('Segoe UI', 16, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="+ Import Vehicle", font=('Segoe UI', 10),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
-                  cursor='hand2', command=self._import_vehicle).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="+ Import Vehicle", font=('Segoe UI', 10),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#264d80',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._import_vehicle).pack(side=tk.RIGHT)
 
         # Filter bar
-        filter_frame = tk.Frame(self, bg='#0d0d14')
+        filter_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         filter_frame.pack(fill=tk.X, padx=16, pady=(4, 8))
 
         self._filter_type = self._add_filter_dropdown(filter_frame, "Type", ['All'] + VEHICLE_TYPES)
@@ -66,21 +68,21 @@ class AssetsMode(tk.Frame):
         self._filter_angle = self._add_filter_dropdown(filter_frame, "Angle", ['All'] + CAMERA_ANGLES)
         self._filter_distance = self._add_filter_dropdown(filter_frame, "Distance", ['All'] + DISTANCES)
 
-        tk.Label(filter_frame, text="Search:", fg='#e0e0e8', bg='#0d0d14',
-                 font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
+        ctk.CTkLabel(filter_frame, text="Search:", text_color='#e0e0e8', fg_color="transparent",
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._filter_search = tk.StringVar()
         self._filter_search.trace_add('write', lambda *_: self._refresh_grid())
-        tk.Entry(filter_frame, textvariable=self._filter_search, width=20,
-                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                 bd=0, font=('Segoe UI', 9)).pack(side=tk.LEFT)
+        ctk.CTkEntry(filter_frame, textvariable=self._filter_search, width=160,
+                     fg_color='#242438', text_color='#e0e0e8', border_color='#2d2d44',
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT)
 
         # Scrollable grid
-        grid_container = tk.Frame(self, bg='#0d0d14')
+        grid_container = ctk.CTkFrame(self, fg_color='#0d0d14')
         grid_container.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 12))
 
         canvas = tk.Canvas(grid_container, bg='#0d0d14', highlightthickness=0)
-        scrollbar = ttk.Scrollbar(grid_container, orient=tk.VERTICAL, command=canvas.yview)
-        self._grid_frame = tk.Frame(canvas, bg='#0d0d14')
+        scrollbar = ctk.CTkScrollbar(grid_container, orientation='vertical', command=canvas.yview)
+        self._grid_frame = ctk.CTkFrame(canvas, fg_color='#0d0d14')
 
         self._grid_frame.bind('<Configure>',
                               lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
@@ -99,13 +101,18 @@ class AssetsMode(tk.Frame):
         self._refresh_grid()
 
     def _add_filter_dropdown(self, parent, label, values):
-        tk.Label(parent, text=f"{label}:", fg='#e0e0e8', bg='#0d0d14',
-                 font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(8, 2))
+        ctk.CTkLabel(parent, text=f"{label}:", text_color='#e0e0e8', fg_color="transparent",
+                     font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(8, 2))
         var = tk.StringVar(value='All')
-        combo = ttk.Combobox(parent, textvariable=var, values=values,
-                             state='readonly', width=12)
+        combo = ctk.CTkComboBox(parent, variable=var, values=values,
+                                state='readonly', width=120,
+                                fg_color='#242438', text_color='#e0e0e8',
+                                border_color='#2d2d44', button_color='#2d2d44',
+                                button_hover_color='#3d3d5c',
+                                dropdown_fg_color='#242438', dropdown_text_color='#e0e0e8',
+                                dropdown_hover_color='#2d2d44')
         combo.pack(side=tk.LEFT)
-        combo.bind('<<ComboboxSelected>>', lambda e: self._refresh_grid())
+        combo.configure(command=lambda _: self._refresh_grid())
         return var
 
     def _get_filtered_assets(self) -> list[dict]:
@@ -147,9 +154,9 @@ class AssetsMode(tk.Frame):
         assets = self._get_filtered_assets()
 
         if not assets:
-            tk.Label(self._grid_frame, text="No registered assets found.\nImport vehicle photos to get started.",
-                     font=('Segoe UI', 12), fg='#555570', bg='#0d0d14',
-                     justify=tk.CENTER).grid(row=0, column=0, padx=40, pady=60)
+            ctk.CTkLabel(self._grid_frame, text="No registered assets found.\nImport vehicle photos to get started.",
+                         font=('Segoe UI', 12), text_color='#555570', fg_color="transparent",
+                         justify=tk.CENTER).grid(row=0, column=0, padx=40, pady=60)
             return
 
         cols = max(1, self._browser_canvas.winfo_width() // 230) if self._browser_canvas.winfo_width() > 100 else 4
@@ -158,34 +165,37 @@ class AssetsMode(tk.Frame):
             card = self._build_asset_card(self._grid_frame, asset)
             card.grid(row=row, column=col, padx=8, pady=8, sticky='n')
 
-    def _build_asset_card(self, parent, asset) -> tk.Frame:
-        card = tk.Frame(parent, bg='#242438', cursor='hand2')
-        card.configure(highlightbackground='#2d2d44', highlightthickness=1)
+    def _build_asset_card(self, parent, asset) -> ctk.CTkFrame:
+        card = ctk.CTkFrame(parent, fg_color='#242438', corner_radius=8,
+                            border_color='#2d2d44', border_width=1)
+        card.configure(cursor='hand2')
 
         # Thumbnail
         thumb = self._get_thumbnail(asset)
-        img_label = tk.Label(card, image=thumb, bg='#242438')
+        img_label = ctk.CTkLabel(card, image=thumb, text="", fg_color="transparent")
         img_label.image = thumb
         img_label.pack(padx=4, pady=(4, 0))
 
         # Info
         make_model = f"{asset.get('make', '')} {asset.get('model', '')}".strip() or asset['filename']
-        tk.Label(card, text=make_model, font=('Segoe UI', 9, 'bold'),
-                 fg='#e0e0e8', bg='#242438', wraplength=190).pack(pady=(2, 0))
+        ctk.CTkLabel(card, text=make_model, font=('Segoe UI', 9, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent", wraplength=190).pack(pady=(2, 0))
 
         # Badges
-        badge_frame = tk.Frame(card, bg='#242438')
+        badge_frame = ctk.CTkFrame(card, fg_color='#242438')
         badge_frame.pack(pady=(2, 4))
 
         vtype = asset.get('vehicle_type', '')
         if vtype:
-            tk.Label(badge_frame, text=vtype, font=('Segoe UI', 7),
-                     fg='#ffffff', bg='#1e3a5f', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
+            ctk.CTkLabel(badge_frame, text=vtype, font=('Segoe UI', 7),
+                         text_color='#ffffff', fg_color='#1e3a5f',
+                         corner_radius=4).pack(side=tk.LEFT, padx=1)
 
         lighting = asset.get('lighting', '').replace('_', ' ').title()
         if lighting:
-            tk.Label(badge_frame, text=lighting, font=('Segoe UI', 7),
-                     fg='#e0e0e8', bg='#2d2d44', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
+            ctk.CTkLabel(badge_frame, text=lighting, font=('Segoe UI', 7),
+                         text_color='#e0e0e8', fg_color='#2d2d44',
+                         corner_radius=4).pack(side=tk.LEFT, padx=1)
 
         # Click binding
         aid = asset['id']
@@ -257,58 +267,63 @@ class AssetsMode(tk.Frame):
         self._drag_start = None  # for middle-click drag panning
 
         # Top bar
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
-        tk.Label(top, text=f"Onboard: {filename}", font=('Segoe UI', 14, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text=f"Onboard: {filename}", font=('Segoe UI', 14, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT)
 
-        tk.Button(top, text="Skip / Back to Browser", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=self._skip_onboarding).pack(side=tk.RIGHT)
+        ctk.CTkButton(top, text="Skip / Back to Browser", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d5c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._skip_onboarding).pack(side=tk.RIGHT)
 
         # Instructions
         self._instruction_var = tk.StringVar(
             value="Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan"
         )
-        tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 9),
-                 fg='#8888a0', bg='#0d0d14').pack(pady=(2, 2))
+        ctk.CTkLabel(self, textvariable=self._instruction_var, font=('Segoe UI', 9),
+                     text_color='#8888a0', fg_color="transparent").pack(pady=(2, 2))
 
         # Buttons ABOVE the canvas
-        btn_frame = tk.Frame(self, bg='#0d0d14')
+        btn_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         btn_frame.pack(pady=(0, 4))
 
-        self._undo_btn = tk.Button(btn_frame, text="Undo Last Point",
-                                   font=('Segoe UI', 10),
-                                   fg='#e0e0e8', bg='#2d2d44', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._undo_last_corner, state=tk.DISABLED)
+        self._undo_btn = ctk.CTkButton(btn_frame, text="Undo Last Point",
+                                       font=('Segoe UI', 10),
+                                       text_color='#e0e0e8', fg_color='#2d2d44',
+                                       hover_color='#3d3d5c', border_width=0,
+                                       corner_radius=8, cursor='hand2',
+                                       command=self._undo_last_corner, state="disabled")
         self._undo_btn.pack(side=tk.LEFT, padx=8)
 
-        self._redo_btn = tk.Button(btn_frame, text="Reset All",
-                                   font=('Segoe UI', 10),
-                                   fg='#ffffff', bg='#dc2626', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._redo_corners, state=tk.DISABLED)
+        self._redo_btn = ctk.CTkButton(btn_frame, text="Reset All",
+                                       font=('Segoe UI', 10),
+                                       text_color='#ffffff', fg_color='#dc2626',
+                                       hover_color='#b91c1c', border_width=0,
+                                       corner_radius=8, cursor='hand2',
+                                       command=self._redo_corners, state="disabled")
         self._redo_btn.pack(side=tk.LEFT, padx=8)
 
-        self._confirm_btn = tk.Button(btn_frame, text="Confirm Corners",
-                                      font=('Segoe UI', 10, 'bold'),
-                                      fg='#ffffff', bg='#1e3a5f', bd=0,
-                                      padx=16, pady=6, cursor='hand2',
-                                      command=self._confirm_corners, state=tk.DISABLED)
+        self._confirm_btn = ctk.CTkButton(btn_frame, text="Confirm Corners",
+                                          font=('Segoe UI', 10, 'bold'),
+                                          text_color='#ffffff', fg_color='#1e3a5f',
+                                          hover_color='#264d80', border_width=0,
+                                          corner_radius=8, cursor='hand2',
+                                          command=self._confirm_corners, state="disabled")
         self._confirm_btn.pack(side=tk.LEFT, padx=8)
 
-        self._zoom_label = tk.Label(btn_frame, text="1.0x", font=('Segoe UI', 9),
-                                    fg='#555570', bg='#0d0d14', width=6)
+        self._zoom_label = ctk.CTkLabel(btn_frame, text="1.0x", font=('Segoe UI', 9),
+                                        text_color='#555570', fg_color="transparent", width=50)
         self._zoom_label.pack(side=tk.LEFT, padx=(16, 0))
 
-        tk.Button(btn_frame, text="Reset View", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=self._reset_view).pack(side=tk.LEFT, padx=4)
+        ctk.CTkButton(btn_frame, text="Reset View", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d5c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._reset_view).pack(side=tk.LEFT, padx=4)
 
-        # Canvas
-        canvas_frame = tk.Frame(self, bg='#0d0d14')
+        # Canvas (stays as tk.Canvas, wrapped in CTkFrame)
+        canvas_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
@@ -462,8 +477,8 @@ class AssetsMode(tk.Frame):
         self._redraw_canvas()
 
         # Enable undo/reset now that we have at least one point
-        self._undo_btn.configure(state=tk.NORMAL)
-        self._redo_btn.configure(state=tk.NORMAL)
+        self._undo_btn.configure(state="normal")
+        self._redo_btn.configure(state="normal")
 
         labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
         if idx < 4:
@@ -471,7 +486,7 @@ class AssetsMode(tk.Frame):
         else:
             self._instruction_var.set("4 corners placed — review the outline, then Confirm or Reset")
             self._render_warp_preview()
-            self._confirm_btn.configure(state=tk.NORMAL)
+            self._confirm_btn.configure(state="normal")
 
     def _draw_corner_polygon(self):
         """Draw green polygon connecting the 4 corners."""
@@ -513,12 +528,12 @@ class AssetsMode(tk.Frame):
             return
 
         self._onboard_corners.pop()
-        self._confirm_btn.configure(state=tk.DISABLED)
+        self._confirm_btn.configure(state="disabled")
         self._redraw_canvas()
 
         if not self._onboard_corners:
-            self._undo_btn.configure(state=tk.DISABLED)
-            self._redo_btn.configure(state=tk.DISABLED)
+            self._undo_btn.configure(state="disabled")
+            self._redo_btn.configure(state="disabled")
             self._instruction_var.set("Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan")
         else:
             labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
@@ -529,9 +544,9 @@ class AssetsMode(tk.Frame):
         """Reset all corners and start over."""
         self._onboard_corners.clear()
         self._corner_dots.clear()
-        self._confirm_btn.configure(state=tk.DISABLED)
-        self._undo_btn.configure(state=tk.DISABLED)
-        self._redo_btn.configure(state=tk.DISABLED)
+        self._confirm_btn.configure(state="disabled")
+        self._undo_btn.configure(state="disabled")
+        self._redo_btn.configure(state="disabled")
         self._instruction_var.set("Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan")
         self._redraw_canvas()
 
@@ -548,12 +563,13 @@ class AssetsMode(tk.Frame):
     def _show_metadata_form(self):
         self._clear()
 
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
-        tk.Label(top, text=f"Register: {self._onboard_filename}",
-                 font=('Segoe UI', 14, 'bold'), fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(top, text=f"Register: {self._onboard_filename}",
+                     font=('Segoe UI', 14, 'bold'), text_color='#e0e0e8',
+                     fg_color="transparent").pack(side=tk.LEFT)
 
-        form = tk.Frame(self, bg='#0d0d14')
+        form = ctk.CTkFrame(self, fg_color='#0d0d14')
         form.pack(pady=16, padx=40)
 
         row = 0
@@ -561,22 +577,27 @@ class AssetsMode(tk.Frame):
 
         def add_dropdown(label, values, default=None):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
-                     bg='#0d0d14', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
+            ctk.CTkLabel(form, text=label, font=('Segoe UI', 10), text_color='#e0e0e8',
+                         fg_color="transparent", anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
             var = tk.StringVar(value=default or values[0])
-            ttk.Combobox(form, textvariable=var, values=values, state='readonly',
-                         width=25).grid(row=row, column=1, sticky='w', pady=4)
+            ctk.CTkComboBox(form, variable=var, values=values, state='readonly',
+                            width=200,
+                            fg_color='#242438', text_color='#e0e0e8',
+                            border_color='#2d2d44', button_color='#2d2d44',
+                            button_hover_color='#3d3d5c',
+                            dropdown_fg_color='#242438', dropdown_text_color='#e0e0e8',
+                            dropdown_hover_color='#2d2d44').grid(row=row, column=1, sticky='w', pady=4)
             self._meta_fields[label] = var
             row += 1
 
         def add_entry(label, default=''):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
-                     bg='#0d0d14', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
+            ctk.CTkLabel(form, text=label, font=('Segoe UI', 10), text_color='#e0e0e8',
+                         fg_color="transparent", anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
             var = tk.StringVar(value=default)
-            tk.Entry(form, textvariable=var, width=28, bg='#242438', fg='#e0e0e8',
-                     insertbackground='#e0e0e8', bd=0, font=('Segoe UI', 10)
-                     ).grid(row=row, column=1, sticky='w', pady=4)
+            ctk.CTkEntry(form, textvariable=var, width=200, fg_color='#242438', text_color='#e0e0e8',
+                         border_color='#2d2d44',
+                         font=('Segoe UI', 10)).grid(row=row, column=1, sticky='w', pady=4)
             self._meta_fields[label] = var
             row += 1
 
@@ -590,16 +611,18 @@ class AssetsMode(tk.Frame):
         add_entry('Tags (comma separated)')
 
         # Buttons
-        btn_frame = tk.Frame(self, bg='#0d0d14')
+        btn_frame = ctk.CTkFrame(self, fg_color='#0d0d14')
         btn_frame.pack(pady=16)
 
-        tk.Button(btn_frame, text="Save Asset", font=('Segoe UI', 11, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=20, pady=8,
-                  cursor='hand2', command=self._save_asset).pack(side=tk.LEFT, padx=8)
+        ctk.CTkButton(btn_frame, text="Save Asset", font=('Segoe UI', 11, 'bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#264d80',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._save_asset).pack(side=tk.LEFT, padx=8)
 
-        tk.Button(btn_frame, text="Cancel", font=('Segoe UI', 10),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=16, pady=8,
-                  cursor='hand2', command=self._show_browser).pack(side=tk.LEFT, padx=8)
+        ctk.CTkButton(btn_frame, text="Cancel", font=('Segoe UI', 10),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d5c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._show_browser).pack(side=tk.LEFT, padx=8)
 
     def _save_asset(self):
         """Write asset record to database."""
@@ -656,23 +679,24 @@ class AssetsMode(tk.Frame):
         self._detail_asset_id = asset_id
 
         # Top bar
-        top = tk.Frame(self, bg='#0d0d14')
+        top = ctk.CTkFrame(self, fg_color='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
-        tk.Button(top, text="< Back", font=('Segoe UI', 10),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=self._show_browser).pack(side=tk.LEFT)
+        ctk.CTkButton(top, text="< Back", font=('Segoe UI', 10),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d5c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2', command=self._show_browser).pack(side=tk.LEFT)
 
         make_model = f"{asset.get('make', '')} {asset.get('model', '')}".strip() or asset['filename']
-        tk.Label(top, text=make_model, font=('Segoe UI', 14, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT, padx=16)
+        ctk.CTkLabel(top, text=make_model, font=('Segoe UI', 14, 'bold'),
+                     text_color='#e0e0e8', fg_color="transparent").pack(side=tk.LEFT, padx=16)
 
         # Main content: image left, metadata right
-        content = tk.Frame(self, bg='#0d0d14')
+        content = ctk.CTkFrame(self, fg_color='#0d0d14')
         content.pack(fill=tk.BOTH, expand=True, padx=16, pady=8)
 
         # Image with corner overlay
-        img_frame = tk.Frame(content, bg='#0d0d14')
+        img_frame = ctk.CTkFrame(content, fg_color='#0d0d14')
         img_frame.pack(side=tk.LEFT, padx=(0, 16))
 
         path = os.path.join(VEHICLES_DIR, asset['filename'])
@@ -693,13 +717,14 @@ class AssetsMode(tk.Frame):
             scale = min(600 / pil_img.width, 450 / pil_img.height)
             disp = pil_img.resize((int(pil_img.width * scale), int(pil_img.height * scale)), Image.LANCZOS)
             self._detail_photo = ImageTk.PhotoImage(disp)
-            tk.Label(img_frame, image=self._detail_photo, bg='#0d0d14').pack(padx=4, pady=4)
+            ctk.CTkLabel(img_frame, image=self._detail_photo, text="",
+                         fg_color="transparent").pack(padx=4, pady=4)
         except Exception:
-            tk.Label(img_frame, text="Image not found", fg='#dc2626', bg='#0d0d14',
-                     font=('Segoe UI', 12)).pack(padx=40, pady=40)
+            ctk.CTkLabel(img_frame, text="Image not found", text_color='#dc2626',
+                         fg_color="transparent", font=('Segoe UI', 12)).pack(padx=40, pady=40)
 
         # Metadata panel
-        meta_frame = tk.Frame(content, bg='#0d0d14')
+        meta_frame = ctk.CTkFrame(content, fg_color='#0d0d14')
         meta_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         fields = [
@@ -717,42 +742,47 @@ class AssetsMode(tk.Frame):
         ]
 
         for label, value in fields:
-            row = tk.Frame(meta_frame, bg='#0d0d14')
+            row = ctk.CTkFrame(meta_frame, fg_color='#0d0d14')
             row.pack(fill=tk.X, pady=2)
-            tk.Label(row, text=f"{label}:", font=('Segoe UI', 9, 'bold'),
-                     fg='#8888a0', bg='#0d0d14', width=14, anchor='w').pack(side=tk.LEFT)
-            tk.Label(row, text=value, font=('Segoe UI', 9),
-                     fg='#e0e0e8', bg='#0d0d14', anchor='w').pack(side=tk.LEFT)
+            ctk.CTkLabel(row, text=f"{label}:", font=('Segoe UI', 9, 'bold'),
+                         text_color='#8888a0', fg_color="transparent", width=112,
+                         anchor='w').pack(side=tk.LEFT)
+            ctk.CTkLabel(row, text=value, font=('Segoe UI', 9),
+                         text_color='#e0e0e8', fg_color="transparent",
+                         anchor='w').pack(side=tk.LEFT)
 
         # Templates referencing this asset
         ref_templates = [t for t in self.state.templates if t.get('vehicle_id') == asset_id]
         if ref_templates:
-            tk.Label(meta_frame, text=f"\nUsed in {len(ref_templates)} template(s):",
-                     font=('Segoe UI', 9, 'bold'), fg='#1e3a5f', bg='#0d0d14',
-                     anchor='w').pack(fill=tk.X, pady=(8, 2))
+            ctk.CTkLabel(meta_frame, text=f"\nUsed in {len(ref_templates)} template(s):",
+                         font=('Segoe UI', 9, 'bold'), text_color='#1e3a5f',
+                         fg_color="transparent", anchor='w').pack(fill=tk.X, pady=(8, 2))
             for t in ref_templates:
-                tk.Label(meta_frame, text=f"  - {t.get('name', t['id'])}",
-                         font=('Segoe UI', 9), fg='#e0e0e8', bg='#0d0d14',
-                         anchor='w').pack(fill=tk.X)
+                ctk.CTkLabel(meta_frame, text=f"  - {t.get('name', t['id'])}",
+                             font=('Segoe UI', 9), text_color='#e0e0e8',
+                             fg_color="transparent", anchor='w').pack(fill=tk.X)
 
         # Action buttons
-        btn_frame = tk.Frame(meta_frame, bg='#0d0d14')
+        btn_frame = ctk.CTkFrame(meta_frame, fg_color='#0d0d14')
         btn_frame.pack(fill=tk.X, pady=(16, 0))
 
-        tk.Button(btn_frame, text="Edit Metadata", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
-                  cursor='hand2',
-                  command=lambda: self._edit_metadata(asset_id)).pack(side=tk.LEFT, padx=4)
+        ctk.CTkButton(btn_frame, text="Edit Metadata", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#264d80',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2',
+                      command=lambda: self._edit_metadata(asset_id)).pack(side=tk.LEFT, padx=4)
 
-        tk.Button(btn_frame, text="Redo Corners", font=('Segoe UI', 9),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
-                  cursor='hand2',
-                  command=lambda: self._redo_asset_corners(asset_id)).pack(side=tk.LEFT, padx=4)
+        ctk.CTkButton(btn_frame, text="Redo Corners", font=('Segoe UI', 9),
+                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#3d3d5c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2',
+                      command=lambda: self._redo_asset_corners(asset_id)).pack(side=tk.LEFT, padx=4)
 
-        tk.Button(btn_frame, text="Delete Asset", font=('Segoe UI', 9),
-                  fg='#ffffff', bg='#dc2626', bd=0, padx=12, pady=4,
-                  cursor='hand2',
-                  command=lambda: self._delete_asset(asset_id)).pack(side=tk.RIGHT, padx=4)
+        ctk.CTkButton(btn_frame, text="Delete Asset", font=('Segoe UI', 9),
+                      text_color='#ffffff', fg_color='#dc2626', hover_color='#b91c1c',
+                      border_width=0, corner_radius=8,
+                      cursor='hand2',
+                      command=lambda: self._delete_asset(asset_id)).pack(side=tk.RIGHT, padx=4)
 
     def _delete_asset(self, asset_id: int):
         """Delete an asset from the database and optionally remove the file."""
@@ -793,14 +823,14 @@ class AssetsMode(tk.Frame):
         if not asset:
             return
 
-        win = tk.Toplevel(self)
+        win = ctk.CTkToplevel(self)
         win.title(f"Edit: {asset['filename']}")
         win.geometry("400x450")
-        win.configure(bg='#0d0d14')
+        win.configure(fg_color='#0d0d14')
         win.transient(self)
         win.grab_set()
 
-        form = tk.Frame(win, bg='#0d0d14')
+        form = ctk.CTkFrame(win, fg_color='#0d0d14')
         form.pack(pady=16, padx=24, fill=tk.BOTH, expand=True)
 
         fields = {}
@@ -808,21 +838,26 @@ class AssetsMode(tk.Frame):
 
         def add_dd(label, values, current):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
-                     bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
+            ctk.CTkLabel(form, text=label, font=('Segoe UI', 10), text_color='#e0e0e8',
+                         fg_color="transparent").grid(row=row, column=0, sticky='w', pady=4)
             var = tk.StringVar(value=current)
-            ttk.Combobox(form, textvariable=var, values=values, state='readonly',
-                         width=22).grid(row=row, column=1, sticky='w', pady=4)
+            ctk.CTkComboBox(form, variable=var, values=values, state='readonly',
+                            width=180,
+                            fg_color='#242438', text_color='#e0e0e8',
+                            border_color='#2d2d44', button_color='#2d2d44',
+                            button_hover_color='#3d3d5c',
+                            dropdown_fg_color='#242438', dropdown_text_color='#e0e0e8',
+                            dropdown_hover_color='#2d2d44').grid(row=row, column=1, sticky='w', pady=4)
             fields[label] = var
             row += 1
 
         def add_ent(label, current):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
-                     bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
+            ctk.CTkLabel(form, text=label, font=('Segoe UI', 10), text_color='#e0e0e8',
+                         fg_color="transparent").grid(row=row, column=0, sticky='w', pady=4)
             var = tk.StringVar(value=current)
-            tk.Entry(form, textvariable=var, width=25, bg='#242438', fg='#e0e0e8',
-                     insertbackground='#e0e0e8', bd=0).grid(row=row, column=1, sticky='w', pady=4)
+            ctk.CTkEntry(form, textvariable=var, width=180, fg_color='#242438', text_color='#e0e0e8',
+                         border_color='#2d2d44').grid(row=row, column=1, sticky='w', pady=4)
             fields[label] = var
             row += 1
 
@@ -865,9 +900,10 @@ class AssetsMode(tk.Frame):
             win.destroy()
             self._show_detail(asset_id)
 
-        tk.Button(win, text="Save", font=('Segoe UI', 10, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=16, pady=6,
-                  command=save).pack(pady=8)
+        ctk.CTkButton(win, text="Save", font=('Segoe UI', 10, 'bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#264d80',
+                      border_width=0, corner_radius=8,
+                      command=save).pack(pady=8)
 
     def _redo_asset_corners(self, asset_id: int):
         """Re-enter corner mapping for an existing asset."""

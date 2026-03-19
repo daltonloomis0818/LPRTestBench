@@ -8,7 +8,10 @@ import sys
 import json
 import sqlite3
 import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 # Determine project root — works both as script and as frozen EXE
 if getattr(sys, 'frozen', False):
@@ -42,17 +45,17 @@ class AppState:
         self.unregistered_assets: list[str] = []
 
 
-class LPRTestBenchApp(tk.Tk):
+class LPRTestBenchApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("LPRTestBench")
         self.geometry("1400x900")
         self.minsize(1100, 700)
-        self.configure(bg='#0d0d14')
+        self.configure(fg_color='#0d0d14')
 
         self.state_obj = AppState()
         self._current_mode = None
-        self._current_frame: tk.Frame | None = None
+        self._current_frame: ctk.CTkFrame | None = None
 
         self._ensure_directories()
         self._init_database()
@@ -120,11 +123,11 @@ class LPRTestBenchApp(tk.Tk):
                 self.state_obj.unregistered_assets.append(fname)
 
     def _build_nav(self):
-        nav = tk.Frame(self, bg='#0d0d14', height=50)
+        nav = ctk.CTkFrame(self, fg_color='#0d0d14', height=50)
         nav.pack(side=tk.TOP, fill=tk.X)
         nav.pack_propagate(False)
 
-        self._nav_buttons: dict[str, tk.Button] = {}
+        self._nav_buttons: dict[str, ctk.CTkButton] = {}
         modes = [
             ('assets', 'Assets'),
             ('templates', 'Templates'),
@@ -133,33 +136,35 @@ class LPRTestBenchApp(tk.Tk):
         ]
 
         for mode_key, label in modes:
-            btn = tk.Button(
+            btn = ctk.CTkButton(
                 nav, text=label,
-                font=('Segoe UI', 11, 'bold'),
-                fg='#8888a0', bg='#0d0d14',
-                activeforeground='#ffffff', activebackground='#1e3a5f',
-                bd=0, padx=24, pady=10,
+                font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'),
+                text_color='#8888a0', fg_color='#0d0d14',
+                hover_color='#1e3a5f',
+                border_width=0, corner_radius=8,
+                width=100, height=40,
                 cursor='hand2',
                 command=lambda m=mode_key: self._switch_mode(m),
             )
-            btn.pack(side=tk.LEFT)
+            btn.pack(side=tk.LEFT, padx=4, pady=5)
             self._nav_buttons[mode_key] = btn
 
         # Plate List editor button
-        tk.Button(
+        ctk.CTkButton(
             nav, text='Plate List',
-            font=('Segoe UI', 10),
-            fg='#ffffff', bg='#1e3a5f',
-            activeforeground='#ffffff', activebackground='#264d80',
-            bd=0, padx=16, pady=10,
+            font=ctk.CTkFont(family='Segoe UI', size=12),
+            text_color='#ffffff', fg_color='#1e3a5f',
+            hover_color='#264d80',
+            border_width=0, corner_radius=8,
+            width=100, height=36,
             cursor='hand2',
             command=self._open_plate_list_editor,
-        ).pack(side=tk.RIGHT)
+        ).pack(side=tk.RIGHT, padx=8, pady=7)
 
         # Unregistered asset indicator
-        self._unreg_label = tk.Label(
-            nav, text='', font=('Segoe UI', 10),
-            fg='#dc2626', bg='#0d0d14',
+        self._unreg_label = ctk.CTkLabel(
+            nav, text='', font=ctk.CTkFont(family='Segoe UI', size=12),
+            text_color='#dc2626', fg_color='transparent',
         )
         self._unreg_label.pack(side=tk.RIGHT, padx=16)
         self._update_unreg_indicator()
@@ -177,30 +182,34 @@ class LPRTestBenchApp(tk.Tk):
         """Open a window to view and edit the plate list."""
         plate_list_path = os.path.join(DATA_DIR, 'plate_list.txt')
 
-        win = tk.Toplevel(self)
+        win = ctk.CTkToplevel(self)
         win.title("Plate List")
         win.geometry("340x550")
-        win.configure(bg='#0d0d14')
+        win.configure(fg_color='#0d0d14')
         win.transient(self)
 
         # Header with count
-        header = tk.Frame(win, bg='#0d0d14')
+        header = ctk.CTkFrame(win, fg_color='#0d0d14')
         header.pack(fill=tk.X, padx=16, pady=(12, 8))
-        tk.Label(header, text="Plate List", font=('Segoe UI', 14, 'bold'),
-                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
+        ctk.CTkLabel(header, text="Plate List",
+                     font=ctk.CTkFont(family='Segoe UI', size=16, weight='bold'),
+                     text_color='#e0e0e8', fg_color='transparent').pack(side=tk.LEFT)
         count_var = tk.StringVar(value="0 plates")
-        tk.Label(header, textvariable=count_var, font=('Segoe UI', 10),
-                 fg='#555570', bg='#0d0d14').pack(side=tk.RIGHT)
+        ctk.CTkLabel(header, textvariable=count_var,
+                     font=ctk.CTkFont(family='Segoe UI', size=12),
+                     text_color='#555570', fg_color='transparent').pack(side=tk.RIGHT)
 
         # Add row: entry + "+" button
-        add_frame = tk.Frame(win, bg='#0d0d14')
+        add_frame = ctk.CTkFrame(win, fg_color='#0d0d14')
         add_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
 
         add_var = tk.StringVar()
-        add_entry = tk.Entry(add_frame, textvariable=add_var,
-                             bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
-                             bd=0, font=('Consolas', 14), width=14)
-        add_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8), ipady=4)
+        add_entry = ctk.CTkEntry(add_frame, textvariable=add_var,
+                                 fg_color='#242438', text_color='#e0e0e8',
+                                 border_color='#2d2d44',
+                                 font=ctk.CTkFont(family='Consolas', size=14),
+                                 width=200, height=36)
+        add_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
 
         def add_plate():
             plate = add_var.get().strip().upper()
@@ -218,12 +227,15 @@ class LPRTestBenchApp(tk.Tk):
 
         add_entry.bind('<Return>', lambda e: add_plate())
 
-        tk.Button(add_frame, text="+", font=('Segoe UI', 14, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, width=3,
-                  cursor='hand2', command=add_plate).pack(side=tk.RIGHT)
+        ctk.CTkButton(add_frame, text="+",
+                      font=ctk.CTkFont(family='Segoe UI', size=16, weight='bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f',
+                      hover_color='#264d80',
+                      corner_radius=8, width=44, height=36,
+                      cursor='hand2', command=add_plate).pack(side=tk.RIGHT)
 
-        # Listbox with scrollbar
-        list_frame = tk.Frame(win, bg='#0d0d14')
+        # Listbox with scrollbar (kept as tk.Listbox, wrapped in CTkFrame)
+        list_frame = ctk.CTkFrame(win, fg_color='#0d0d14')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         scrollbar = tk.Scrollbar(list_frame)
@@ -250,7 +262,7 @@ class LPRTestBenchApp(tk.Tk):
         update_count()
 
         # Remove button: "-" removes selected plates
-        remove_frame = tk.Frame(win, bg='#0d0d14')
+        remove_frame = ctk.CTkFrame(win, fg_color='#0d0d14')
         remove_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
 
         def remove_selected():
@@ -261,15 +273,21 @@ class LPRTestBenchApp(tk.Tk):
                 listbox.delete(idx)
             update_count()
 
-        tk.Button(remove_frame, text="-  Remove Selected", font=('Segoe UI', 10),
-                  fg='#ffffff', bg='#dc2626', bd=0, padx=12, pady=4,
-                  cursor='hand2', command=remove_selected).pack(side=tk.LEFT)
+        ctk.CTkButton(remove_frame, text="-  Remove Selected",
+                      font=ctk.CTkFont(family='Segoe UI', size=12),
+                      text_color='#ffffff', fg_color='#dc2626',
+                      hover_color='#b91c1c',
+                      corner_radius=8, height=32,
+                      cursor='hand2', command=remove_selected).pack(side=tk.LEFT)
 
-        tk.Button(remove_frame, text="Clear All", font=('Segoe UI', 10),
-                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
-                  cursor='hand2',
-                  command=lambda: (listbox.delete(0, tk.END), update_count())
-                  ).pack(side=tk.RIGHT)
+        ctk.CTkButton(remove_frame, text="Clear All",
+                      font=ctk.CTkFont(family='Segoe UI', size=12),
+                      text_color='#e0e0e8', fg_color='#2d2d44',
+                      hover_color='#3d3d5c',
+                      corner_radius=8, height=32,
+                      cursor='hand2',
+                      command=lambda: (listbox.delete(0, tk.END), update_count())
+                      ).pack(side=tk.RIGHT)
 
         # Save button
         def save():
@@ -278,14 +296,17 @@ class LPRTestBenchApp(tk.Tk):
                 f.write('\n'.join(plates) + '\n')
             win.destroy()
 
-        tk.Button(win, text="Save", font=('Segoe UI', 11, 'bold'),
-                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=24, pady=8,
-                  cursor='hand2', command=save).pack(pady=(0, 12))
+        ctk.CTkButton(win, text="Save",
+                      font=ctk.CTkFont(family='Segoe UI', size=13, weight='bold'),
+                      text_color='#ffffff', fg_color='#1e3a5f',
+                      hover_color='#264d80',
+                      corner_radius=8, width=120, height=38,
+                      cursor='hand2', command=save).pack(pady=(0, 12))
 
         add_entry.focus()
 
     def _build_container(self):
-        self._container = tk.Frame(self, bg='#0d0d14')
+        self._container = ctk.CTkFrame(self, fg_color='#0d0d14')
         self._container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def _switch_mode(self, mode: str):
@@ -295,9 +316,9 @@ class LPRTestBenchApp(tk.Tk):
         # Update nav button highlighting
         for key, btn in self._nav_buttons.items():
             if key == mode:
-                btn.configure(bg='#1e3a5f', fg='#ffffff', padx=24, pady=10)
+                btn.configure(fg_color='#1e3a5f', text_color='#ffffff')
             else:
-                btn.configure(bg='#0d0d14', fg='#8888a0', padx=24, pady=10)
+                btn.configure(fg_color='#0d0d14', text_color='#8888a0')
 
         # Destroy current frame
         if self._current_frame:
