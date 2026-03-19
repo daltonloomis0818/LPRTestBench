@@ -145,6 +145,17 @@ class LPRTestBenchApp(tk.Tk):
             btn.pack(side=tk.LEFT)
             self._nav_buttons[mode_key] = btn
 
+        # Plate List editor button
+        tk.Button(
+            nav, text='Plate List',
+            font=('Segoe UI', 10),
+            fg='#a6e3a1', bg='#11111b',
+            activeforeground='#a6e3a1', activebackground='#313244',
+            bd=0, padx=16, pady=10,
+            cursor='hand2',
+            command=self._open_plate_list_editor,
+        ).pack(side=tk.RIGHT)
+
         # Unregistered asset indicator
         self._unreg_label = tk.Label(
             nav, text='', font=('Segoe UI', 10),
@@ -161,6 +172,121 @@ class LPRTestBenchApp(tk.Tk):
             )
         else:
             self._unreg_label.configure(text='')
+
+    def _open_plate_list_editor(self):
+        """Open a window to view and edit the plate list."""
+        plate_list_path = os.path.join(DATA_DIR, 'plate_list.txt')
+
+        win = tk.Toplevel(self)
+        win.title("Plate List Editor")
+        win.geometry("420x600")
+        win.configure(bg='#1e1e2e')
+        win.transient(self)
+
+        # Header
+        header = tk.Frame(win, bg='#1e1e2e')
+        header.pack(fill=tk.X, padx=16, pady=(12, 4))
+        tk.Label(header, text="Plate List", font=('Segoe UI', 14, 'bold'),
+                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+
+        # Count label
+        count_var = tk.StringVar()
+        tk.Label(header, textvariable=count_var, font=('Segoe UI', 10),
+                 fg='#6c7086', bg='#1e1e2e').pack(side=tk.RIGHT)
+
+        # Instructions
+        tk.Label(win, text="One plate per line. Used by templates set to List or Mixed mode.",
+                 font=('Segoe UI', 9), fg='#a6adc8', bg='#1e1e2e',
+                 wraplength=380).pack(padx=16, pady=(0, 8))
+
+        # Text area with scrollbar
+        text_frame = tk.Frame(win, bg='#1e1e2e')
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
+
+        scrollbar = tk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        text_area = tk.Text(text_frame, bg='#313244', fg='#cdd6f4',
+                            insertbackground='#cdd6f4', font=('Consolas', 12),
+                            bd=0, padx=8, pady=8, undo=True,
+                            yscrollcommand=scrollbar.set)
+        text_area.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=text_area.yview)
+
+        # Load current plates
+        if os.path.isfile(plate_list_path):
+            with open(plate_list_path, 'r', encoding='utf-8') as f:
+                text_area.insert('1.0', f.read())
+
+        def update_count(*_):
+            content = text_area.get('1.0', 'end-1c')
+            plates = [l.strip() for l in content.splitlines() if l.strip()]
+            count_var.set(f"{len(plates)} plates")
+
+        text_area.bind('<KeyRelease>', update_count)
+        update_count()
+
+        # Add plate entry
+        add_frame = tk.Frame(win, bg='#1e1e2e')
+        add_frame.pack(fill=tk.X, padx=16, pady=(0, 4))
+
+        add_var = tk.StringVar()
+        add_entry = tk.Entry(add_frame, textvariable=add_var, width=15,
+                             bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                             bd=0, font=('Consolas', 12))
+        add_entry.pack(side=tk.LEFT, padx=(0, 8))
+        add_entry.bind('<Return>', lambda e: add_plate())
+
+        def add_plate():
+            plate = add_var.get().strip().upper()
+            if plate:
+                content = text_area.get('1.0', 'end-1c')
+                if content and not content.endswith('\n'):
+                    text_area.insert('end', '\n')
+                text_area.insert('end', plate + '\n')
+                add_var.set('')
+                text_area.see('end')
+                update_count()
+
+        tk.Button(add_frame, text="Add Plate", font=('Segoe UI', 10),
+                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=12, pady=4,
+                  cursor='hand2', command=add_plate).pack(side=tk.LEFT)
+
+        # Bottom buttons
+        btn_frame = tk.Frame(win, bg='#1e1e2e')
+        btn_frame.pack(fill=tk.X, padx=16, pady=(0, 12))
+
+        def save_and_close():
+            content = text_area.get('1.0', 'end-1c')
+            # Clean: strip blank lines, uppercase, remove dupes while preserving order
+            plates = []
+            seen = set()
+            for line in content.splitlines():
+                p = line.strip().upper()
+                if p and p not in seen:
+                    plates.append(p)
+                    seen.add(p)
+            with open(plate_list_path, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(plates) + '\n')
+            win.destroy()
+
+        def clear_all():
+            text_area.delete('1.0', 'end')
+            update_count()
+
+        tk.Button(btn_frame, text="Save & Close", font=('Segoe UI', 10, 'bold'),
+                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=16, pady=6,
+                  cursor='hand2', command=save_and_close).pack(side=tk.LEFT, padx=4)
+
+        tk.Button(btn_frame, text="Clear All", font=('Segoe UI', 10),
+                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=6,
+                  cursor='hand2', command=clear_all).pack(side=tk.LEFT, padx=4)
+
+        tk.Button(btn_frame, text="Cancel", font=('Segoe UI', 10),
+                  fg='#cdd6f4', bg='#45475a', bd=0, padx=12, pady=6,
+                  cursor='hand2', command=win.destroy).pack(side=tk.RIGHT, padx=4)
+
+        add_entry.focus()
 
     def _build_container(self):
         self._container = tk.Frame(self, bg='#1e1e2e')
