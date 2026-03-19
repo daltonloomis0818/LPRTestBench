@@ -359,12 +359,14 @@ class DemoMode(ctk.CTkFrame):
                                   image=self._current_photo, tags='display')
 
         # Raise overlay above image
-        self._canvas.tag_raise(self._overlay_window)
+        self._canvas.tag_raise(self._info_window)
+        self._canvas.tag_raise(self._ctrl_window)
 
         # Update overlay
-        self._overlay_template.configure(text=metadata.get('template_name', ''))
         self._overlay_plate.configure(text=metadata.get('plate_text', ''))
-        self._overlay_vehicle.configure(text=metadata.get('vehicle_info', ''))
+        self._overlay_vehicle.configure(
+            text=f"{metadata.get('template_name', '')}  —  {metadata.get('vehicle_info', '')}"
+        )
 
         # Log to session
         self._log_session(metadata)
