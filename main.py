@@ -125,6 +125,7 @@ class LPRTestBenchApp(ctk.CTk):
     def _build_nav(self):
         nav = ctk.CTkFrame(self, fg_color='#0d0d14', height=50)
         nav.pack(side=tk.TOP, fill=tk.X)
+        self._nav_frame = nav  # stored so demo mode can hide/show it
         nav.pack_propagate(False)
 
         self._nav_buttons: dict[str, ctk.CTkButton] = {}

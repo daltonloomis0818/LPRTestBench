@@ -42,6 +42,9 @@ class DemoMode(ctk.CTkFrame):
         self._current_photo: ImageTk.PhotoImage | None = None
         self._is_running = False
         self._is_fullscreen = False
+        self._overlay_visible = True
+        self._overlay_hide_timer = None
+        self._ctrl_frame = None
 
         self._show_library_selector()
 
@@ -195,98 +198,112 @@ class DemoMode(ctk.CTkFrame):
 
     def _build_demo_ui(self):
         self._clear()
+        self._overlay_visible = True
 
-        # Main canvas
-        self._canvas = tk.Canvas(self, bg='#0d0d14', highlightthickness=0)
+        # Main canvas — fills everything
+        self._canvas = tk.Canvas(self, bg='#000000', highlightthickness=0)
         self._canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Overlay panel (top-right)
-        self._overlay_frame = ctk.CTkFrame(self._canvas, fg_color='#1a1a2e', corner_radius=8)
-        self._overlay_window = self._canvas.create_window(
-            10, 10, anchor='nw', window=self._overlay_frame
+        # ── Info overlay (top-left, floats over canvas) ──
+        self._overlay_frame = ctk.CTkFrame(self._canvas, fg_color='#000000',
+                                            corner_radius=10, bg_color='#000000')
+        self._overlay_frame.configure(fg_color=('#1a1a2e', '#1a1a2e'))
+        self._info_window = self._canvas.create_window(
+            12, 12, anchor='nw', window=self._overlay_frame
         )
 
         self._overlay_lib_name = ctk.CTkLabel(self._overlay_frame, text="",
-                                               font=('Segoe UI', 10, 'bold'),
-                                               text_color='#1e3a5f', fg_color="transparent")
-        self._overlay_lib_name.pack(anchor='w', padx=8, pady=(4, 0))
-
-        self._overlay_template = ctk.CTkLabel(self._overlay_frame, text="",
-                                               font=('Segoe UI', 9), text_color='#e0e0e8',
-                                               fg_color="transparent")
-        self._overlay_template.pack(anchor='w', padx=8)
+                                               font=('Segoe UI', 11, 'bold'),
+                                               text_color='#ffffff', fg_color="transparent")
+        self._overlay_lib_name.pack(anchor='w', padx=10, pady=(6, 0))
 
         self._overlay_plate = ctk.CTkLabel(self._overlay_frame, text="",
-                                            font=('Segoe UI', 14, 'bold'),
-                                            text_color='#e0e0e8', fg_color="transparent")
-        self._overlay_plate.pack(anchor='w', padx=8)
+                                            font=('Segoe UI', 18, 'bold'),
+                                            text_color='#4a9eff', fg_color="transparent")
+        self._overlay_plate.pack(anchor='w', padx=10)
 
         self._overlay_vehicle = ctk.CTkLabel(self._overlay_frame, text="",
                                               font=('Segoe UI', 9), text_color='#8888a0',
                                               fg_color="transparent")
-        self._overlay_vehicle.pack(anchor='w', padx=8)
+        self._overlay_vehicle.pack(anchor='w', padx=10)
 
-        self._overlay_cache = ctk.CTkLabel(self._overlay_frame, text="Cache: --",
+        self._overlay_cache = ctk.CTkLabel(self._overlay_frame, text="",
                                             font=('Segoe UI', 8), text_color='#555570',
                                             fg_color="transparent")
-        self._overlay_cache.pack(anchor='w', padx=8, pady=(2, 4))
+        self._overlay_cache.pack(anchor='w', padx=10, pady=(0, 6))
 
         self._overlay_lib_name.configure(text=self._active_library.get('name', ''))
 
-        # Control bar (bottom)
-        ctrl = ctk.CTkFrame(self, fg_color='#1a1a2e', height=50)
-        ctrl.pack(side=tk.BOTTOM, fill=tk.X)
-        ctrl.pack_propagate(False)
+        # ── Control bar (bottom, floats over canvas) ──
+        self._ctrl_frame = ctk.CTkFrame(self._canvas, fg_color='#1a1a2e',
+                                         corner_radius=12, height=52)
+        self._ctrl_window = self._canvas.create_window(
+            0, 0, anchor='s', window=self._ctrl_frame  # positioned in _reposition_controls
+        )
 
-        ctk.CTkButton(ctrl, text="Prev", font=('Segoe UI', 10),
-                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
-                      corner_radius=8, cursor='hand2',
-                      command=self._prev).pack(side=tk.LEFT, padx=4, pady=8)
-
-        ctk.CTkButton(ctrl, text="Next", font=('Segoe UI', 10),
-                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
-                      corner_radius=8, cursor='hand2',
-                      command=self._advance).pack(side=tk.LEFT, padx=4, pady=8)
-
-        self._play_btn = ctk.CTkButton(ctrl, text="Start", font=('Segoe UI', 10, 'bold'),
-                                        text_color='#ffffff', fg_color='#1e3a5f',
-                                        hover_color='#2d2d44', corner_radius=8,
-                                        cursor='hand2', command=self._toggle_auto)
-        self._play_btn.pack(side=tk.LEFT, padx=4, pady=8)
-
-        ctk.CTkLabel(ctrl, text="Speed:", text_color='#8888a0', fg_color="transparent",
-                     font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._speed_var = tk.StringVar(value='3s')
-        speed_combo = ctk.CTkComboBox(ctrl, variable=self._speed_var,
-                                       values=list(SPEED_OPTIONS.keys()),
-                                       state='readonly', width=100,
-                                       fg_color='#242438', text_color='#e0e0e8',
-                                       border_color='#2d2d44', button_color='#2d2d44',
-                                       dropdown_fg_color='#242438',
-                                       dropdown_text_color='#e0e0e8',
-                                       dropdown_hover_color='#1e3a5f')
-        speed_combo.pack(side=tk.LEFT)
 
-        # Right side controls
-        ctk.CTkButton(ctrl, text="Fullscreen", font=('Segoe UI', 9),
-                      text_color='#e0e0e8', fg_color='#2d2d44', hover_color='#1e3a5f',
-                      corner_radius=8, cursor='hand2',
-                      command=self._toggle_fullscreen).pack(side=tk.RIGHT, padx=4, pady=8)
+        # Left controls
+        ctk.CTkButton(self._ctrl_frame, text="< Back", width=70,
+                      font=('Segoe UI', 10), text_color='#ffffff',
+                      fg_color='#dc2626', hover_color='#b91c1c',
+                      corner_radius=8, command=self._exit_demo
+                      ).pack(side=tk.LEFT, padx=(10, 16), pady=8)
 
-        ctk.CTkButton(ctrl, text="Export Batch", font=('Segoe UI', 9),
-                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
-                      corner_radius=8, cursor='hand2',
-                      command=self._export_batch).pack(side=tk.RIGHT, padx=4, pady=8)
+        ctk.CTkButton(self._ctrl_frame, text="Prev", width=60,
+                      font=('Segoe UI', 10), text_color='#e0e0e8',
+                      fg_color='#2d2d44', hover_color='#3d3d5c',
+                      corner_radius=8, command=self._prev
+                      ).pack(side=tk.LEFT, padx=3, pady=8)
 
-        ctk.CTkButton(ctrl, text="Export Current", font=('Segoe UI', 9),
-                      text_color='#ffffff', fg_color='#1e3a5f', hover_color='#2d2d44',
-                      corner_radius=8, cursor='hand2',
-                      command=self._export_current).pack(side=tk.RIGHT, padx=4, pady=8)
+        self._play_btn = ctk.CTkButton(self._ctrl_frame, text="Start", width=80,
+                                        font=('Segoe UI', 11, 'bold'),
+                                        text_color='#ffffff', fg_color='#1e3a5f',
+                                        hover_color='#264d80', corner_radius=8,
+                                        command=self._toggle_auto)
+        self._play_btn.pack(side=tk.LEFT, padx=3, pady=8)
 
-        ctk.CTkButton(ctrl, text="Back", font=('Segoe UI', 9),
-                      text_color='#ffffff', fg_color='#dc2626', hover_color='#b91c1c',
-                      corner_radius=8, cursor='hand2',
-                      command=self._exit_demo).pack(side=tk.RIGHT, padx=4, pady=8)
+        ctk.CTkButton(self._ctrl_frame, text="Next", width=60,
+                      font=('Segoe UI', 10), text_color='#e0e0e8',
+                      fg_color='#2d2d44', hover_color='#3d3d5c',
+                      corner_radius=8, command=self._advance
+                      ).pack(side=tk.LEFT, padx=3, pady=8)
+
+        # Speed
+        ctk.CTkLabel(self._ctrl_frame, text="Speed:", text_color='#8888a0',
+                     fg_color="transparent", font=('Segoe UI', 9)
+                     ).pack(side=tk.LEFT, padx=(12, 2))
+        ctk.CTkComboBox(self._ctrl_frame, variable=self._speed_var,
+                        values=list(SPEED_OPTIONS.keys()),
+                        state='readonly', width=85,
+                        fg_color='#242438', text_color='#e0e0e8',
+                        border_color='#2d2d44', button_color='#2d2d44',
+                        dropdown_fg_color='#242438', dropdown_text_color='#e0e0e8',
+                        dropdown_hover_color='#1e3a5f'
+                        ).pack(side=tk.LEFT, padx=3)
+
+        # Right controls
+        ctk.CTkButton(self._ctrl_frame, text="Fullscreen", width=90,
+                      font=('Segoe UI', 9), text_color='#e0e0e8',
+                      fg_color='#2d2d44', hover_color='#3d3d5c',
+                      corner_radius=8, command=self._toggle_fullscreen
+                      ).pack(side=tk.RIGHT, padx=(3, 10), pady=8)
+
+        ctk.CTkButton(self._ctrl_frame, text="Export Batch", width=100,
+                      font=('Segoe UI', 9), text_color='#ffffff',
+                      fg_color='#1e3a5f', hover_color='#264d80',
+                      corner_radius=8, command=self._export_batch
+                      ).pack(side=tk.RIGHT, padx=3, pady=8)
+
+        ctk.CTkButton(self._ctrl_frame, text="Export Current", width=110,
+                      font=('Segoe UI', 9), text_color='#ffffff',
+                      fg_color='#1e3a5f', hover_color='#264d80',
+                      corner_radius=8, command=self._export_current
+                      ).pack(side=tk.RIGHT, padx=3, pady=8)
+
+        # ── Mouse motion shows overlays, inactivity hides them ──
+        self._canvas.bind('<Motion>', self._on_mouse_move)
+        self._canvas.bind('<Configure>', lambda e: self._reposition_controls())
 
         # Keyboard bindings
         self.winfo_toplevel().bind('<Right>', lambda e: self._advance())
@@ -295,7 +312,9 @@ class DemoMode(ctk.CTkFrame):
         self.winfo_toplevel().bind('<F11>', lambda e: self._toggle_fullscreen())
         self.winfo_toplevel().bind('<Escape>', lambda e: self._exit_fullscreen())
 
-        # Update cache indicator periodically
+        # Position controls and start auto-hide timer
+        self.after(100, self._reposition_controls)
+        self._schedule_overlay_hide()
         self._update_cache_indicator()
 
     def _advance(self):
@@ -408,14 +427,63 @@ class DemoMode(ctk.CTkFrame):
         if speed_ms > 0:
             self._auto_timer = self.after(speed_ms, self._auto_cycle)
 
+    def _on_mouse_move(self, event=None):
+        """Show overlays on mouse movement, schedule hide."""
+        if not self._overlay_visible:
+            self._show_overlays()
+        self._schedule_overlay_hide()
+
+    def _schedule_overlay_hide(self):
+        """Hide overlays after 3 seconds of no mouse movement."""
+        if self._overlay_hide_timer:
+            self.after_cancel(self._overlay_hide_timer)
+        self._overlay_hide_timer = self.after(3000, self._hide_overlays)
+
+    def _show_overlays(self):
+        """Fade in the info and control overlays."""
+        self._overlay_visible = True
+        if hasattr(self, '_info_window'):
+            self._canvas.itemconfigure(self._info_window, state='normal')
+        if hasattr(self, '_ctrl_window'):
+            self._canvas.itemconfigure(self._ctrl_window, state='normal')
+
+    def _hide_overlays(self):
+        """Fade out the info and control overlays."""
+        self._overlay_visible = False
+        if hasattr(self, '_info_window'):
+            self._canvas.itemconfigure(self._info_window, state='hidden')
+        if hasattr(self, '_ctrl_window'):
+            self._canvas.itemconfigure(self._ctrl_window, state='hidden')
+
+    def _reposition_controls(self):
+        """Keep the control bar centered at the bottom of the canvas."""
+        if not hasattr(self, '_ctrl_window') or not hasattr(self, '_canvas'):
+            return
+        try:
+            cw = self._canvas.winfo_width()
+            ch = self._canvas.winfo_height()
+            if cw > 10 and ch > 10:
+                self._canvas.coords(self._ctrl_window, cw // 2, ch - 16)
+        except Exception:
+            pass
+
     def _toggle_fullscreen(self):
         self._is_fullscreen = not self._is_fullscreen
-        self.winfo_toplevel().attributes('-fullscreen', self._is_fullscreen)
+        top = self.winfo_toplevel()
+        top.attributes('-fullscreen', self._is_fullscreen)
+        # Hide/show the nav bar when entering/exiting fullscreen
+        if hasattr(self.app, '_nav_frame'):
+            if self._is_fullscreen:
+                self.app._nav_frame.pack_forget()
+            else:
+                self.app._nav_frame.pack(side=tk.TOP, fill=tk.X, before=self.app._container)
 
     def _exit_fullscreen(self):
         if self._is_fullscreen:
             self._is_fullscreen = False
             self.winfo_toplevel().attributes('-fullscreen', False)
+            if hasattr(self.app, '_nav_frame'):
+                self.app._nav_frame.pack(side=tk.TOP, fill=tk.X, before=self.app._container)
 
     def _export_current(self):
         if not self._current_image or not self._current_metadata:
