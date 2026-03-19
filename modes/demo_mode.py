@@ -94,38 +94,88 @@ class DemoMode(tk.Frame):
             messagebox.showwarning("Empty", "This library has no valid templates.")
             return
 
+        # Verify all template assets exist
+        missing = []
+        for t in templates:
+            asset = self.state.asset_cache.get(t.get('vehicle_id'))
+            if not asset:
+                missing.append(t.get('name', t['id'][:8]))
+            else:
+                import os as _os
+                vpath = _os.path.join(_os.path.normpath(
+                    _os.path.join(_BASE_DIR, 'assets', 'vehicles')), asset['filename'])
+                if not _os.path.isfile(vpath):
+                    missing.append(f"{t.get('name', '')} (file missing: {asset['filename']})")
+        if missing:
+            messagebox.showerror("Missing Assets",
+                                 f"These templates reference missing assets:\n" +
+                                 "\n".join(f"  - {m}" for m in missing))
+            return
+
         self._active_library = lib
         self._clear()
 
-        # Show loading screen
-        self._loading_label = tk.Label(self, text="Preparing demo...\nPre-warming cache",
+        # Show loading screen with progress
+        self._loading_label = tk.Label(self, text="Preparing demo...\nPre-warming cache (0/10)",
                                         font=('Segoe UI', 14), fg='#f9e2af', bg='#0d0d14',
                                         justify=tk.CENTER)
         self._loading_label.pack(expand=True)
+
+        self._loading_back_btn = tk.Button(self, text="Cancel", font=('Segoe UI', 10),
+                                            fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=6,
+                                            cursor='hand2', command=self._show_library_selector)
+        self._loading_back_btn.pack(pady=8)
         self.update()
 
         # Initialize cache engine
-        from engine.cache_engine import CacheEngine
-        self._cache_engine = CacheEngine(
-            templates=templates,
-            asset_lookup=self.state.asset_cache,
-            cycle_mode=lib.get('cycle_mode', 'sequential'),
-        )
+        try:
+            from engine.cache_engine import CacheEngine
+            self._cache_engine = CacheEngine(
+                templates=templates,
+                asset_lookup=self.state.asset_cache,
+                cycle_mode=lib.get('cycle_mode', 'sequential'),
+            )
+        except Exception as e:
+            messagebox.showerror("Engine Error", f"Failed to initialize cache engine:\n{e}")
+            self._show_library_selector()
+            return
 
-        # Prewarm
-        self._cache_engine.prewarm(20)
+        # Prewarm on background thread so UI stays responsive
+        self._prewarm_done = False
+        self._prewarm_error = None
+        import threading
+        threading.Thread(target=self._prewarm_worker, args=(10,), daemon=True).start()
+        self._poll_prewarm(lib)
 
-        # Update library last_run
+    def _prewarm_worker(self, count: int):
+        """Run prewarm on background thread."""
+        try:
+            self._cache_engine.prewarm(count)
+            self._prewarm_done = True
+        except Exception as e:
+            self._prewarm_error = str(e)
+            self._prewarm_done = True
+
+    def _poll_prewarm(self, lib: dict):
+        """Poll for prewarm completion without blocking UI."""
+        if self._prewarm_error:
+            messagebox.showerror("Prewarm Error", f"Failed to generate images:\n{self._prewarm_error}")
+            self._show_library_selector()
+            return
+
+        if not self._prewarm_done:
+            depth = self._cache_engine.queue_depth() if self._cache_engine else 0
+            if hasattr(self, '_loading_label') and self._loading_label.winfo_exists():
+                self._loading_label.configure(text=f"Preparing demo...\nPre-warming cache ({depth}/10)")
+            self.after(100, lambda: self._poll_prewarm(lib))
+            return
+
+        # Prewarm complete — launch demo
         lib['last_run'] = datetime.now(timezone.utc).isoformat()
         self.app.save_libraries()
 
-        # Build demo UI
         self._build_demo_ui()
-
-        # Start cache engine background thread
         self._cache_engine.start()
-
-        # Show first image
         self._advance()
 
     def _build_demo_ui(self):

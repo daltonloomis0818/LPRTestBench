@@ -111,6 +111,7 @@ class LPRTestBenchApp(tk.Tk):
 
     def _scan_unregistered_assets(self):
         """Find PNGs in vehicles dir that aren't in the database."""
+        self.state_obj.unregistered_assets.clear()
         if not os.path.isdir(ASSETS_VEHICLES_DIR):
             return
         registered = {a['filename'] for a in self.state_obj.asset_cache.values()}

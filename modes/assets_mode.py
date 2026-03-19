@@ -250,6 +250,12 @@ class AssetsMode(tk.Frame):
         self._onboard_corners: list[list[float]] = []
         self._corner_dots = []
 
+        # Zoom/pan state
+        self._zoom_level = 1.0
+        self._pan_x = 0.0  # pan offset in image-normalized coords
+        self._pan_y = 0.0
+        self._drag_start = None  # for middle-click drag panning
+
         # Top bar
         top = tk.Frame(self, bg='#1e1e2e')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
@@ -263,12 +269,12 @@ class AssetsMode(tk.Frame):
 
         # Instructions
         self._instruction_var = tk.StringVar(
-            value="Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)"
+            value="Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan"
         )
-        tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 10),
-                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 4))
+        tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 9),
+                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(2, 2))
 
-        # Buttons ABOVE the canvas so they're always visible
+        # Buttons ABOVE the canvas
         btn_frame = tk.Frame(self, bg='#1e1e2e')
         btn_frame.pack(pady=(0, 4))
 
@@ -293,6 +299,14 @@ class AssetsMode(tk.Frame):
                                       command=self._confirm_corners, state=tk.DISABLED)
         self._confirm_btn.pack(side=tk.LEFT, padx=8)
 
+        self._zoom_label = tk.Label(btn_frame, text="1.0x", font=('Segoe UI', 9),
+                                    fg='#6c7086', bg='#1e1e2e', width=6)
+        self._zoom_label.pack(side=tk.LEFT, padx=(16, 0))
+
+        tk.Button(btn_frame, text="Reset View", font=('Segoe UI', 9),
+                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  cursor='hand2', command=self._reset_view).pack(side=tk.LEFT, padx=4)
+
         # Canvas
         canvas_frame = tk.Frame(self, bg='#1e1e2e')
         canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
@@ -311,30 +325,132 @@ class AssetsMode(tk.Frame):
             self._show_browser()
             return
 
-        self._display_scale = min(CANVAS_W / self._onboard_pil.width,
-                                  CANVAS_H / self._onboard_pil.height)
-        disp_w = int(self._onboard_pil.width * self._display_scale)
-        disp_h = int(self._onboard_pil.height * self._display_scale)
-        self._display_offset_x = (CANVAS_W - disp_w) // 2
-        self._display_offset_y = (CANVAS_H - disp_h) // 2
+        # Base scale to fit image in canvas
+        self._base_scale = min(CANVAS_W / self._onboard_pil.width,
+                               CANVAS_H / self._onboard_pil.height)
 
-        resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
-        self._ob_photo = ImageTk.PhotoImage(resized)
-        self._ob_canvas.create_image(self._display_offset_x, self._display_offset_y,
-                                     anchor='nw', image=self._ob_photo, tags='vehicle')
+        self._redraw_canvas()
 
+        # Bindings
         self._ob_canvas.bind('<Button-1>', self._on_canvas_click)
         self._ob_canvas.bind('<Button-3>', lambda e: self._undo_last_corner())
+        self._ob_canvas.bind('<MouseWheel>', self._on_scroll_zoom)
+        self._ob_canvas.bind('<Button-2>', self._on_pan_start)
+        self._ob_canvas.bind('<B2-Motion>', self._on_pan_drag)
+        self._ob_canvas.bind('<ButtonRelease-2>', self._on_pan_end)
+        # Also support Shift+left-drag for pan (no middle button on some mice)
+        self._ob_canvas.bind('<Shift-Button-1>', self._on_pan_start)
+        self._ob_canvas.bind('<Shift-B1-Motion>', self._on_pan_drag)
+        self._ob_canvas.bind('<Shift-ButtonRelease-1>', self._on_pan_end)
+
+    def _canvas_to_normalized(self, cx, cy):
+        """Convert canvas pixel coords to normalized image coords (0-1), accounting for zoom/pan."""
+        scale = self._base_scale * self._zoom_level
+        iw, ih = self._onboard_pil.width, self._onboard_pil.height
+        disp_w = iw * scale
+        disp_h = ih * scale
+        ox = (CANVAS_W - disp_w) / 2 + self._pan_x * scale
+        oy = (CANVAS_H - disp_h) / 2 + self._pan_y * scale
+        img_x = (cx - ox) / disp_w
+        img_y = (cy - oy) / disp_h
+        return img_x, img_y
+
+    def _normalized_to_canvas(self, nx, ny):
+        """Convert normalized image coords (0-1) to canvas pixel coords."""
+        scale = self._base_scale * self._zoom_level
+        iw, ih = self._onboard_pil.width, self._onboard_pil.height
+        disp_w = iw * scale
+        disp_h = ih * scale
+        ox = (CANVAS_W - disp_w) / 2 + self._pan_x * scale
+        oy = (CANVAS_H - disp_h) / 2 + self._pan_y * scale
+        return ox + nx * disp_w, oy + ny * disp_h
+
+    def _on_scroll_zoom(self, event):
+        """Zoom in/out with scroll wheel, centered on mouse position."""
+        old_zoom = self._zoom_level
+        if event.delta > 0:
+            self._zoom_level = min(self._zoom_level * 1.2, 10.0)
+        else:
+            self._zoom_level = max(self._zoom_level / 1.2, 0.5)
+
+        # Adjust pan so zoom is centered on mouse position
+        if old_zoom != self._zoom_level:
+            # Get normalized coord under mouse at old zoom
+            mx, my = self._canvas_to_normalized(event.x, event.y)
+            # After zoom change, shift pan so that same coord stays under mouse
+            scale = self._base_scale * self._zoom_level
+            iw, ih = self._onboard_pil.width, self._onboard_pil.height
+            disp_w = iw * scale
+            disp_h = ih * scale
+            ox_target = event.x - mx * disp_w
+            oy_target = event.y - my * disp_h
+            ox_center = (CANVAS_W - disp_w) / 2
+            oy_center = (CANVAS_H - disp_h) / 2
+            self._pan_x = (ox_target - ox_center) / scale
+            self._pan_y = (oy_target - oy_center) / scale
+
+        self._zoom_label.configure(text=f"{self._zoom_level:.1f}x")
+        self._redraw_canvas()
+
+    def _on_pan_start(self, event):
+        self._drag_start = (event.x, event.y, self._pan_x, self._pan_y)
+
+    def _on_pan_drag(self, event):
+        if not self._drag_start:
+            return
+        sx, sy, spx, spy = self._drag_start
+        scale = self._base_scale * self._zoom_level
+        self._pan_x = spx + (event.x - sx) / scale
+        self._pan_y = spy + (event.y - sy) / scale
+        self._redraw_canvas()
+
+    def _on_pan_end(self, event):
+        self._drag_start = None
+
+    def _reset_view(self):
+        """Reset zoom and pan to default."""
+        self._zoom_level = 1.0
+        self._pan_x = 0.0
+        self._pan_y = 0.0
+        self._zoom_label.configure(text="1.0x")
+        self._redraw_canvas()
+
+    def _redraw_canvas(self):
+        """Redraw the image and all corner markers at current zoom/pan."""
+        self._ob_canvas.delete('all')
+
+        scale = self._base_scale * self._zoom_level
+        iw, ih = self._onboard_pil.width, self._onboard_pil.height
+        disp_w = int(iw * scale)
+        disp_h = int(ih * scale)
+
+        resized = self._onboard_pil.resize((max(1, disp_w), max(1, disp_h)), Image.LANCZOS)
+        self._ob_photo = ImageTk.PhotoImage(resized)
+
+        ox = (CANVAS_W - disp_w) / 2 + self._pan_x * scale
+        oy = (CANVAS_H - disp_h) / 2 + self._pan_y * scale
+        self._ob_canvas.create_image(ox, oy, anchor='nw', image=self._ob_photo, tags='vehicle')
+
+        # Redraw corner dots
+        self._corner_dots.clear()
+        for i, c in enumerate(self._onboard_corners):
+            cx, cy = self._normalized_to_canvas(c[0], c[1])
+            r = 6
+            dot = self._ob_canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                                               fill='#f38ba8', outline='white', width=1)
+            text = self._ob_canvas.create_text(cx, cy, text=str(i + 1),
+                                                font=('Segoe UI', 8, 'bold'), fill='white')
+            self._corner_dots.append((dot, text))
+
+        # Redraw polygon if 4 corners
+        if len(self._onboard_corners) == 4:
+            self._draw_corner_polygon()
 
     def _on_canvas_click(self, event):
         if len(self._onboard_corners) >= 4:
             return
 
-        x, y = event.x, event.y
-
-        # Convert canvas coords to normalized image coords
-        img_x = (x - self._display_offset_x) / (self._onboard_pil.width * self._display_scale)
-        img_y = (y - self._display_offset_y) / (self._onboard_pil.height * self._display_scale)
+        img_x, img_y = self._canvas_to_normalized(event.x, event.y)
 
         if not (0.0 <= img_x <= 1.0 and 0.0 <= img_y <= 1.0):
             return
@@ -342,14 +458,8 @@ class AssetsMode(tk.Frame):
         self._onboard_corners.append([img_x, img_y])
         idx = len(self._onboard_corners)
 
-        # Draw numbered red dot
-        r = 6
-        dot = self._ob_canvas.create_oval(x - r, y - r, x + r, y + r,
-                                           fill='#f38ba8', outline='white', width=1)
-        text = self._ob_canvas.create_text(x, y, text=str(idx),
-                                            font=('Segoe UI', 8, 'bold'), fill='white')
-        # Store as pairs so undo can remove one point at a time
-        self._corner_dots.append((dot, text))
+        # Redraw to show the new dot
+        self._redraw_canvas()
 
         # Enable undo/reset now that we have at least one point
         self._undo_btn.configure(state=tk.NORMAL)
@@ -357,10 +467,9 @@ class AssetsMode(tk.Frame):
 
         labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
         if idx < 4:
-            self._instruction_var.set(f"Click corner {idx + 1}: {labels[idx]}  (Right-click to undo)")
+            self._instruction_var.set(f"Corner {idx}/4 placed. Next: {labels[idx]}  |  Right-click: undo  |  Scroll: zoom")
         else:
-            self._instruction_var.set("4 corners placed — review the green outline, then Confirm or Reset")
-            self._draw_corner_polygon()
+            self._instruction_var.set("4 corners placed — review the outline, then Confirm or Reset")
             self._render_warp_preview()
             self._confirm_btn.configure(state=tk.NORMAL)
 
@@ -368,10 +477,8 @@ class AssetsMode(tk.Frame):
         """Draw green polygon connecting the 4 corners."""
         points = []
         for c in self._onboard_corners:
-            cx = c[0] * self._onboard_pil.width * self._display_scale + self._display_offset_x
-            cy = c[1] * self._onboard_pil.height * self._display_scale + self._display_offset_y
+            cx, cy = self._normalized_to_canvas(c[0], c[1])
             points.extend([cx, cy])
-        # Close the polygon
         points.extend(points[:2])
         self._ob_canvas.create_line(*points, fill='#a6e3a1', width=2, tags='polygon')
 
@@ -406,53 +513,27 @@ class AssetsMode(tk.Frame):
             return
 
         self._onboard_corners.pop()
-
-        # Remove the last dot+text pair from canvas
-        if self._corner_dots:
-            dot, text = self._corner_dots.pop()
-            self._ob_canvas.delete(dot)
-            self._ob_canvas.delete(text)
-
-        # Remove polygon and preview if they were drawn
-        self._ob_canvas.delete('polygon')
         self._confirm_btn.configure(state=tk.DISABLED)
+        self._redraw_canvas()
 
-        # Restore original image (remove warp preview)
-        self._restore_original_image()
-
-        # Update button states
         if not self._onboard_corners:
             self._undo_btn.configure(state=tk.DISABLED)
             self._redo_btn.configure(state=tk.DISABLED)
-            self._instruction_var.set("Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)")
+            self._instruction_var.set("Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan")
         else:
             labels = ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
             idx = len(self._onboard_corners)
-            self._instruction_var.set(f"Click corner {idx + 1}: {labels[idx]}  (Right-click to undo)")
+            self._instruction_var.set(f"Corner {idx}/4 placed. Next: {labels[idx]}  |  Right-click: undo  |  Scroll: zoom")
 
     def _redo_corners(self):
         """Reset all corners and start over."""
         self._onboard_corners.clear()
-        for dot, text in self._corner_dots:
-            self._ob_canvas.delete(dot)
-            self._ob_canvas.delete(text)
         self._corner_dots.clear()
-        self._ob_canvas.delete('polygon')
         self._confirm_btn.configure(state=tk.DISABLED)
         self._undo_btn.configure(state=tk.DISABLED)
         self._redo_btn.configure(state=tk.DISABLED)
-        self._instruction_var.set("Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)")
-        self._restore_original_image()
-
-    def _restore_original_image(self):
-        """Redraw the original vehicle image on the canvas (removes warp preview)."""
-        disp_w = int(self._onboard_pil.width * self._display_scale)
-        disp_h = int(self._onboard_pil.height * self._display_scale)
-        resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
-        self._ob_photo = ImageTk.PhotoImage(resized)
-        self._ob_canvas.delete('vehicle')
-        self._ob_canvas.create_image(self._display_offset_x, self._display_offset_y,
-                                     anchor='nw', image=self._ob_photo, tags='vehicle')
+        self._instruction_var.set("Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan")
+        self._redraw_canvas()
 
     def _confirm_corners(self):
         """Corners confirmed — show metadata form."""
@@ -763,85 +844,30 @@ class AssetsMode(tk.Frame):
         self._show_corner_redo(asset_id)
 
     def _show_corner_redo(self, asset_id: int):
-        """Simplified corner re-mapping that updates existing record."""
-        self._clear()
-        self._onboard_corners = []
-        self._corner_dots = []
+        """Re-map corners for existing asset — reuses the full onboarding flow with zoom/pan."""
         asset = self.state.asset_cache[asset_id]
         filename = asset['filename']
 
-        top = tk.Frame(self, bg='#1e1e2e')
-        top.pack(fill=tk.X, padx=16, pady=(12, 4))
-        tk.Label(top, text=f"Redo Corners: {filename}", font=('Segoe UI', 14, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
-        tk.Button(top, text="Cancel", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
-                  cursor='hand2', command=lambda: self._show_detail(asset_id)).pack(side=tk.RIGHT)
+        # Set up state so _show_onboarding works
+        self._redo_asset_id = asset_id
 
-        self._instruction_var = tk.StringVar(
-            value="Click the 4 corners of the plate region: Top-Left first  (Right-click to undo last point)"
-        )
-        tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 10),
-                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(4, 4))
+        # Show full onboarding canvas (has zoom/pan/undo)
+        self._show_onboarding(filename)
 
-        # Buttons above canvas
-        btn_frame = tk.Frame(self, bg='#1e1e2e')
-        btn_frame.pack(pady=(0, 4))
-
-        self._undo_btn = tk.Button(btn_frame, text="Undo Last Point",
-                                   font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#45475a', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._undo_last_corner, state=tk.DISABLED)
-        self._undo_btn.pack(side=tk.LEFT, padx=8)
-
-        self._redo_btn = tk.Button(btn_frame, text="Reset All",
-                                   font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
-                                   padx=16, pady=6, cursor='hand2',
-                                   command=self._redo_corners, state=tk.DISABLED)
-        self._redo_btn.pack(side=tk.LEFT, padx=8)
-
+        # Override the confirm button to update instead of insert
         def save_corners():
+            if len(self._onboard_corners) != 4:
+                messagebox.showwarning("Incomplete", "Please place all 4 corners.")
+                return
             corners_json = json.dumps(self._onboard_corners)
             cur = self.state.db_conn.cursor()
             cur.execute("UPDATE assets SET corners=? WHERE id=?", (corners_json, asset_id))
             self.state.db_conn.commit()
             self.app.refresh_asset_cache()
+            self._redo_asset_id = None
             self._show_detail(asset_id)
 
-        self._confirm_btn = tk.Button(btn_frame, text="Save Corners",
-                                      font=('Segoe UI', 10, 'bold'),
-                                      fg='#1e1e2e', bg='#a6e3a1', bd=0,
-                                      padx=16, pady=6, cursor='hand2',
-                                      command=save_corners, state=tk.DISABLED)
-        self._confirm_btn.pack(side=tk.LEFT, padx=8)
-
-        # Canvas
-        canvas_frame = tk.Frame(self, bg='#1e1e2e')
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
-
-        self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
-                                    bg='#181825', highlightthickness=1,
-                                    highlightbackground='#45475a')
-        self._ob_canvas.pack(expand=True)
-
-        path = os.path.join(VEHICLES_DIR, filename)
-        self._onboard_pil = Image.open(path).convert('RGBA')
-        self._display_scale = min(CANVAS_W / self._onboard_pil.width,
-                                  CANVAS_H / self._onboard_pil.height)
-        disp_w = int(self._onboard_pil.width * self._display_scale)
-        disp_h = int(self._onboard_pil.height * self._display_scale)
-        self._display_offset_x = (CANVAS_W - disp_w) // 2
-        self._display_offset_y = (CANVAS_H - disp_h) // 2
-
-        resized = self._onboard_pil.resize((disp_w, disp_h), Image.LANCZOS)
-        self._ob_photo = ImageTk.PhotoImage(resized)
-        self._ob_canvas.create_image(self._display_offset_x, self._display_offset_y,
-                                     anchor='nw', image=self._ob_photo, tags='vehicle')
-        self._ob_canvas.bind('<Button-1>', self._on_canvas_click)
-        self._ob_canvas.bind('<Button-3>', lambda e: self._undo_last_corner())
-        self._onboard_filename = filename
+        self._confirm_btn.configure(command=save_corners, text="Save Corners")
 
     # ── Utilities ─────────────────────────────────────────────────
 
