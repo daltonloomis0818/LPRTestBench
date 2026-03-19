@@ -28,7 +28,7 @@ PLATE_SOURCES = ['random', 'list', 'mixed']
 
 class TemplatesMode(tk.Frame):
     def __init__(self, parent, state, app):
-        super().__init__(parent, bg='#1e1e2e')
+        super().__init__(parent, bg='#0d0d14')
         self.state = state
         self.app = app
         self._preview_photo = None
@@ -40,21 +40,21 @@ class TemplatesMode(tk.Frame):
     def _show_browser(self):
         self._clear()
 
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         tk.Label(top, text="Templates", font=('Segoe UI', 16, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
 
         tk.Button(top, text="+ New Template", font=('Segoe UI', 10),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=12, pady=4,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
                   cursor='hand2', command=self._show_builder).pack(side=tk.RIGHT)
 
         # Filter bar
-        fbar = tk.Frame(self, bg='#1e1e2e')
+        fbar = tk.Frame(self, bg='#0d0d14')
         fbar.pack(fill=tk.X, padx=16, pady=(4, 8))
 
-        tk.Label(fbar, text="Sort:", fg='#cdd6f4', bg='#1e1e2e',
+        tk.Label(fbar, text="Sort:", fg='#e0e0e8', bg='#0d0d14',
                  font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(0, 4))
         self._sort_var = tk.StringVar(value='name')
         ttk.Combobox(fbar, textvariable=self._sort_var,
@@ -62,21 +62,21 @@ class TemplatesMode(tk.Frame):
                      state='readonly', width=12).pack(side=tk.LEFT)
         self._sort_var.trace_add('write', lambda *_: self._refresh_list())
 
-        tk.Label(fbar, text="Search:", fg='#cdd6f4', bg='#1e1e2e',
+        tk.Label(fbar, text="Search:", fg='#e0e0e8', bg='#0d0d14',
                  font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._search_var = tk.StringVar()
         self._search_var.trace_add('write', lambda *_: self._refresh_list())
         tk.Entry(fbar, textvariable=self._search_var, width=20,
-                 bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                  bd=0, font=('Segoe UI', 9)).pack(side=tk.LEFT)
 
         # Bulk action buttons
         tk.Button(fbar, text="Delete Selected", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=8, pady=2,
+                  fg='#ffffff', bg='#dc2626', bd=0, padx=8, pady=2,
                   cursor='hand2', command=self._delete_selected).pack(side=tk.RIGHT, padx=4)
 
         # Template list
-        list_frame = tk.Frame(self, bg='#1e1e2e')
+        list_frame = tk.Frame(self, bg='#0d0d14')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 12))
 
         cols = ('name', 'vehicle', 'state', 'plate_source', 'vault_count', 'created')
@@ -171,30 +171,30 @@ class TemplatesMode(tk.Frame):
         self._clear()
         self._edit_template = edit_template
 
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         title = "Edit Template" if edit_template else "New Template"
         tk.Label(top, text=title, font=('Segoe UI', 14, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
 
         tk.Button(top, text="< Back", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._show_browser).pack(side=tk.RIGHT)
 
         # Main layout: left = form, right = preview
-        main = tk.Frame(self, bg='#1e1e2e')
+        main = tk.Frame(self, bg='#0d0d14')
         main.pack(fill=tk.BOTH, expand=True, padx=16, pady=8)
 
-        form_frame = tk.Frame(main, bg='#1e1e2e')
+        form_frame = tk.Frame(main, bg='#0d0d14')
         form_frame.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 16))
 
-        preview_frame = tk.Frame(main, bg='#181825', highlightbackground='#45475a',
+        preview_frame = tk.Frame(main, bg='#0d0d14', highlightbackground='#2d2d44',
                                  highlightthickness=1)
         preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         self._preview_label = tk.Label(preview_frame, text="Select a vehicle to preview",
-                                       fg='#6c7086', bg='#181825', font=('Segoe UI', 11))
+                                       fg='#555570', bg='#0d0d14', font=('Segoe UI', 11))
         self._preview_label.pack(expand=True)
 
         # Form fields
@@ -202,7 +202,7 @@ class TemplatesMode(tk.Frame):
 
         # Vehicle picker
         tk.Label(form_frame, text="Vehicle:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=4)
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
         row += 1
 
         # Build vehicle options from asset cache
@@ -222,7 +222,7 @@ class TemplatesMode(tk.Frame):
 
         # State plate
         tk.Label(form_frame, text="State Plate:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 4))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
 
         from engine.plate_renderer import PlateRenderer
@@ -238,7 +238,7 @@ class TemplatesMode(tk.Frame):
 
         # Lighting override
         tk.Label(form_frame, text="Lighting:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 4))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._lighting_var = tk.StringVar(value='Inherit from Asset')
         light_combo = ttk.Combobox(form_frame, textvariable=self._lighting_var,
@@ -249,7 +249,7 @@ class TemplatesMode(tk.Frame):
 
         # Weather override
         tk.Label(form_frame, text="Weather:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 4))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._weather_var = tk.StringVar(value='None')
         weather_combo = ttk.Combobox(form_frame, textvariable=self._weather_var,
@@ -260,18 +260,18 @@ class TemplatesMode(tk.Frame):
 
         # Zoom slider
         tk.Label(form_frame, text="Zoom:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 4))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._zoom_var = tk.DoubleVar(value=1.0)
-        zoom_frame = tk.Frame(form_frame, bg='#1e1e2e')
+        zoom_frame = tk.Frame(form_frame, bg='#0d0d14')
         zoom_frame.grid(row=row, column=0, sticky='w', pady=2)
         self._zoom_label = tk.Label(zoom_frame, text="1.0x", font=('Segoe UI', 9),
-                                    fg='#cdd6f4', bg='#1e1e2e', width=4)
+                                    fg='#e0e0e8', bg='#0d0d14', width=4)
         self._zoom_label.pack(side=tk.RIGHT)
         zoom_scale = tk.Scale(zoom_frame, from_=0.5, to=3.0, resolution=0.1,
                               orient=tk.HORIZONTAL, variable=self._zoom_var,
-                              bg='#1e1e2e', fg='#cdd6f4', highlightthickness=0,
-                              troughcolor='#313244', length=200, showvalue=False,
+                              bg='#0d0d14', fg='#e0e0e8', highlightthickness=0,
+                              troughcolor='#1a1a2e', length=200, showvalue=False,
                               command=lambda v: (self._zoom_label.config(text=f"{float(v):.1f}x"),
                                                  self._schedule_preview()))
         zoom_scale.pack(side=tk.LEFT)
@@ -279,63 +279,63 @@ class TemplatesMode(tk.Frame):
 
         # Plate source
         tk.Label(form_frame, text="Plate Source:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 4))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 4))
         row += 1
         self._plate_source_var = tk.StringVar(value='random')
-        ps_frame = tk.Frame(form_frame, bg='#1e1e2e')
+        ps_frame = tk.Frame(form_frame, bg='#0d0d14')
         ps_frame.grid(row=row, column=0, sticky='w', pady=2)
         for ps in PLATE_SOURCES:
             tk.Radiobutton(ps_frame, text=ps.title(), variable=self._plate_source_var,
-                           value=ps, fg='#cdd6f4', bg='#1e1e2e', selectcolor='#313244',
-                           activebackground='#1e1e2e', activeforeground='#cdd6f4',
+                           value=ps, fg='#e0e0e8', bg='#0d0d14', selectcolor='#1a1a2e',
+                           activebackground='#0d0d14', activeforeground='#e0e0e8',
                            ).pack(side=tk.LEFT, padx=4)
         row += 1
 
         # Mix ratio (shown only for mixed)
         self._ratio_var = tk.DoubleVar(value=0.3)
-        ratio_frame = tk.Frame(form_frame, bg='#1e1e2e')
+        ratio_frame = tk.Frame(form_frame, bg='#0d0d14')
         ratio_frame.grid(row=row, column=0, sticky='w', pady=2)
         tk.Label(ratio_frame, text="List ratio:", font=('Segoe UI', 9),
-                 fg='#a6adc8', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#8888a0', bg='#0d0d14').pack(side=tk.LEFT)
         tk.Scale(ratio_frame, from_=0.0, to=1.0, resolution=0.05,
                  orient=tk.HORIZONTAL, variable=self._ratio_var,
-                 bg='#1e1e2e', fg='#cdd6f4', highlightthickness=0,
-                 troughcolor='#313244', length=150, showvalue=True).pack(side=tk.LEFT)
+                 bg='#0d0d14', fg='#e0e0e8', highlightthickness=0,
+                 troughcolor='#1a1a2e', length=150, showvalue=True).pack(side=tk.LEFT)
         row += 1
 
         # Locked plate
         tk.Label(form_frame, text="Locked Plate (optional):", font=('Segoe UI', 10),
-                 fg='#a6adc8', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 2))
+                 fg='#8888a0', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._locked_plate_var = tk.StringVar()
         tk.Entry(form_frame, textvariable=self._locked_plate_var, width=15,
-                 bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                  bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Tags
         tk.Label(form_frame, text="Tags (comma separated):", font=('Segoe UI', 10),
-                 fg='#a6adc8', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 2))
+                 fg='#8888a0', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._tags_var = tk.StringVar()
         tk.Entry(form_frame, textvariable=self._tags_var, width=30,
-                 bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                  bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Name
         tk.Label(form_frame, text="Template Name:", font=('Segoe UI', 10, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=(8, 2))
+                 fg='#e0e0e8', bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=(8, 2))
         row += 1
         self._name_var = tk.StringVar()
         tk.Entry(form_frame, textvariable=self._name_var, width=30,
-                 bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                  bd=0, font=('Segoe UI', 10)).grid(row=row, column=0, sticky='w', pady=2)
         row += 1
 
         # Save button
         tk.Button(form_frame, text="Save Template", font=('Segoe UI', 11, 'bold'),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=16, pady=8,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=16, pady=8,
                   cursor='hand2', command=self._save_template
                   ).grid(row=row, column=0, sticky='w', pady=(16, 0))
 

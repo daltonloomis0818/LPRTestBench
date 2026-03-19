@@ -48,7 +48,7 @@ class LPRTestBenchApp(tk.Tk):
         self.title("LPRTestBench")
         self.geometry("1400x900")
         self.minsize(1100, 700)
-        self.configure(bg='#1e1e2e')
+        self.configure(bg='#0d0d14')
 
         self.state_obj = AppState()
         self._current_mode = None
@@ -120,7 +120,7 @@ class LPRTestBenchApp(tk.Tk):
                 self.state_obj.unregistered_assets.append(fname)
 
     def _build_nav(self):
-        nav = tk.Frame(self, bg='#11111b', height=50)
+        nav = tk.Frame(self, bg='#0d0d14', height=50)
         nav.pack(side=tk.TOP, fill=tk.X)
         nav.pack_propagate(False)
 
@@ -136,8 +136,8 @@ class LPRTestBenchApp(tk.Tk):
             btn = tk.Button(
                 nav, text=label,
                 font=('Segoe UI', 11, 'bold'),
-                fg='#cdd6f4', bg='#11111b',
-                activeforeground='#cdd6f4', activebackground='#313244',
+                fg='#8888a0', bg='#0d0d14',
+                activeforeground='#ffffff', activebackground='#1e3a5f',
                 bd=0, padx=24, pady=10,
                 cursor='hand2',
                 command=lambda m=mode_key: self._switch_mode(m),
@@ -149,8 +149,8 @@ class LPRTestBenchApp(tk.Tk):
         tk.Button(
             nav, text='Plate List',
             font=('Segoe UI', 10),
-            fg='#a6e3a1', bg='#11111b',
-            activeforeground='#a6e3a1', activebackground='#313244',
+            fg='#ffffff', bg='#1e3a5f',
+            activeforeground='#ffffff', activebackground='#264d80',
             bd=0, padx=16, pady=10,
             cursor='hand2',
             command=self._open_plate_list_editor,
@@ -159,7 +159,7 @@ class LPRTestBenchApp(tk.Tk):
         # Unregistered asset indicator
         self._unreg_label = tk.Label(
             nav, text='', font=('Segoe UI', 10),
-            fg='#f38ba8', bg='#11111b',
+            fg='#dc2626', bg='#0d0d14',
         )
         self._unreg_label.pack(side=tk.RIGHT, padx=16)
         self._update_unreg_indicator()
@@ -180,25 +180,25 @@ class LPRTestBenchApp(tk.Tk):
         win = tk.Toplevel(self)
         win.title("Plate List")
         win.geometry("340x550")
-        win.configure(bg='#1e1e2e')
+        win.configure(bg='#0d0d14')
         win.transient(self)
 
         # Header with count
-        header = tk.Frame(win, bg='#1e1e2e')
+        header = tk.Frame(win, bg='#0d0d14')
         header.pack(fill=tk.X, padx=16, pady=(12, 8))
         tk.Label(header, text="Plate List", font=('Segoe UI', 14, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
         count_var = tk.StringVar(value="0 plates")
         tk.Label(header, textvariable=count_var, font=('Segoe UI', 10),
-                 fg='#6c7086', bg='#1e1e2e').pack(side=tk.RIGHT)
+                 fg='#555570', bg='#0d0d14').pack(side=tk.RIGHT)
 
         # Add row: entry + "+" button
-        add_frame = tk.Frame(win, bg='#1e1e2e')
+        add_frame = tk.Frame(win, bg='#0d0d14')
         add_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
 
         add_var = tk.StringVar()
         add_entry = tk.Entry(add_frame, textvariable=add_var,
-                             bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                             bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                              bd=0, font=('Consolas', 14), width=14)
         add_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8), ipady=4)
 
@@ -219,18 +219,18 @@ class LPRTestBenchApp(tk.Tk):
         add_entry.bind('<Return>', lambda e: add_plate())
 
         tk.Button(add_frame, text="+", font=('Segoe UI', 14, 'bold'),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, width=3,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, width=3,
                   cursor='hand2', command=add_plate).pack(side=tk.RIGHT)
 
         # Listbox with scrollbar
-        list_frame = tk.Frame(win, bg='#1e1e2e')
+        list_frame = tk.Frame(win, bg='#0d0d14')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         scrollbar = tk.Scrollbar(list_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        listbox = tk.Listbox(list_frame, bg='#313244', fg='#cdd6f4',
-                             selectbackground='#45475a', selectforeground='#cdd6f4',
+        listbox = tk.Listbox(list_frame, bg='#1a1a2e', fg='#e0e0e8',
+                             selectbackground='#1e3a5f', selectforeground='#ffffff',
                              font=('Consolas', 13), bd=0, highlightthickness=0,
                              yscrollcommand=scrollbar.set, selectmode=tk.EXTENDED)
         listbox.pack(fill=tk.BOTH, expand=True)
@@ -250,7 +250,7 @@ class LPRTestBenchApp(tk.Tk):
         update_count()
 
         # Remove button: "-" removes selected plates
-        remove_frame = tk.Frame(win, bg='#1e1e2e')
+        remove_frame = tk.Frame(win, bg='#0d0d14')
         remove_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
 
         def remove_selected():
@@ -262,11 +262,11 @@ class LPRTestBenchApp(tk.Tk):
             update_count()
 
         tk.Button(remove_frame, text="-  Remove Selected", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=4,
+                  fg='#ffffff', bg='#dc2626', bd=0, padx=12, pady=4,
                   cursor='hand2', command=remove_selected).pack(side=tk.LEFT)
 
         tk.Button(remove_frame, text="Clear All", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=12, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
                   cursor='hand2',
                   command=lambda: (listbox.delete(0, tk.END), update_count())
                   ).pack(side=tk.RIGHT)
@@ -279,13 +279,13 @@ class LPRTestBenchApp(tk.Tk):
             win.destroy()
 
         tk.Button(win, text="Save", font=('Segoe UI', 11, 'bold'),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=24, pady=8,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=24, pady=8,
                   cursor='hand2', command=save).pack(pady=(0, 12))
 
         add_entry.focus()
 
     def _build_container(self):
-        self._container = tk.Frame(self, bg='#1e1e2e')
+        self._container = tk.Frame(self, bg='#0d0d14')
         self._container.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
     def _switch_mode(self, mode: str):
@@ -295,9 +295,9 @@ class LPRTestBenchApp(tk.Tk):
         # Update nav button highlighting
         for key, btn in self._nav_buttons.items():
             if key == mode:
-                btn.configure(bg='#313244')
+                btn.configure(bg='#1e3a5f', fg='#ffffff', padx=24, pady=10)
             else:
-                btn.configure(bg='#11111b')
+                btn.configure(bg='#0d0d14', fg='#8888a0', padx=24, pady=10)
 
         # Destroy current frame
         if self._current_frame:

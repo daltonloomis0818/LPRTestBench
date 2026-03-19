@@ -28,7 +28,7 @@ CANVAS_W, CANVAS_H = 900, 600
 
 class AssetsMode(tk.Frame):
     def __init__(self, parent, state, app):
-        super().__init__(parent, bg='#1e1e2e')
+        super().__init__(parent, bg='#0d0d14')
         self.state = state
         self.app = app
         self._thumbnails: dict[int, ImageTk.PhotoImage] = {}
@@ -47,18 +47,18 @@ class AssetsMode(tk.Frame):
         self._view = 'browser'
 
         # Top bar: title + add button
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         tk.Label(top, text="Vehicle Assets", font=('Segoe UI', 16, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
 
         tk.Button(top, text="+ Import Vehicle", font=('Segoe UI', 10),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=12, pady=4,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
                   cursor='hand2', command=self._import_vehicle).pack(side=tk.RIGHT)
 
         # Filter bar
-        filter_frame = tk.Frame(self, bg='#1e1e2e')
+        filter_frame = tk.Frame(self, bg='#0d0d14')
         filter_frame.pack(fill=tk.X, padx=16, pady=(4, 8))
 
         self._filter_type = self._add_filter_dropdown(filter_frame, "Type", ['All'] + VEHICLE_TYPES)
@@ -66,21 +66,21 @@ class AssetsMode(tk.Frame):
         self._filter_angle = self._add_filter_dropdown(filter_frame, "Angle", ['All'] + CAMERA_ANGLES)
         self._filter_distance = self._add_filter_dropdown(filter_frame, "Distance", ['All'] + DISTANCES)
 
-        tk.Label(filter_frame, text="Search:", fg='#cdd6f4', bg='#1e1e2e',
+        tk.Label(filter_frame, text="Search:", fg='#e0e0e8', bg='#0d0d14',
                  font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._filter_search = tk.StringVar()
         self._filter_search.trace_add('write', lambda *_: self._refresh_grid())
         tk.Entry(filter_frame, textvariable=self._filter_search, width=20,
-                 bg='#313244', fg='#cdd6f4', insertbackground='#cdd6f4',
+                 bg='#242438', fg='#e0e0e8', insertbackground='#e0e0e8',
                  bd=0, font=('Segoe UI', 9)).pack(side=tk.LEFT)
 
         # Scrollable grid
-        grid_container = tk.Frame(self, bg='#1e1e2e')
+        grid_container = tk.Frame(self, bg='#0d0d14')
         grid_container.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 12))
 
-        canvas = tk.Canvas(grid_container, bg='#1e1e2e', highlightthickness=0)
+        canvas = tk.Canvas(grid_container, bg='#0d0d14', highlightthickness=0)
         scrollbar = ttk.Scrollbar(grid_container, orient=tk.VERTICAL, command=canvas.yview)
-        self._grid_frame = tk.Frame(canvas, bg='#1e1e2e')
+        self._grid_frame = tk.Frame(canvas, bg='#0d0d14')
 
         self._grid_frame.bind('<Configure>',
                               lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
@@ -99,7 +99,7 @@ class AssetsMode(tk.Frame):
         self._refresh_grid()
 
     def _add_filter_dropdown(self, parent, label, values):
-        tk.Label(parent, text=f"{label}:", fg='#cdd6f4', bg='#1e1e2e',
+        tk.Label(parent, text=f"{label}:", fg='#e0e0e8', bg='#0d0d14',
                  font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(8, 2))
         var = tk.StringVar(value='All')
         combo = ttk.Combobox(parent, textvariable=var, values=values,
@@ -148,7 +148,7 @@ class AssetsMode(tk.Frame):
 
         if not assets:
             tk.Label(self._grid_frame, text="No registered assets found.\nImport vehicle photos to get started.",
-                     font=('Segoe UI', 12), fg='#6c7086', bg='#1e1e2e',
+                     font=('Segoe UI', 12), fg='#555570', bg='#0d0d14',
                      justify=tk.CENTER).grid(row=0, column=0, padx=40, pady=60)
             return
 
@@ -159,33 +159,33 @@ class AssetsMode(tk.Frame):
             card.grid(row=row, column=col, padx=8, pady=8, sticky='n')
 
     def _build_asset_card(self, parent, asset) -> tk.Frame:
-        card = tk.Frame(parent, bg='#313244', cursor='hand2')
-        card.configure(highlightbackground='#45475a', highlightthickness=1)
+        card = tk.Frame(parent, bg='#242438', cursor='hand2')
+        card.configure(highlightbackground='#2d2d44', highlightthickness=1)
 
         # Thumbnail
         thumb = self._get_thumbnail(asset)
-        img_label = tk.Label(card, image=thumb, bg='#313244')
+        img_label = tk.Label(card, image=thumb, bg='#242438')
         img_label.image = thumb
         img_label.pack(padx=4, pady=(4, 0))
 
         # Info
         make_model = f"{asset.get('make', '')} {asset.get('model', '')}".strip() or asset['filename']
         tk.Label(card, text=make_model, font=('Segoe UI', 9, 'bold'),
-                 fg='#cdd6f4', bg='#313244', wraplength=190).pack(pady=(2, 0))
+                 fg='#e0e0e8', bg='#242438', wraplength=190).pack(pady=(2, 0))
 
         # Badges
-        badge_frame = tk.Frame(card, bg='#313244')
+        badge_frame = tk.Frame(card, bg='#242438')
         badge_frame.pack(pady=(2, 4))
 
         vtype = asset.get('vehicle_type', '')
         if vtype:
             tk.Label(badge_frame, text=vtype, font=('Segoe UI', 7),
-                     fg='#1e1e2e', bg='#89b4fa', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
+                     fg='#ffffff', bg='#1e3a5f', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
 
         lighting = asset.get('lighting', '').replace('_', ' ').title()
         if lighting:
             tk.Label(badge_frame, text=lighting, font=('Segoe UI', 7),
-                     fg='#1e1e2e', bg='#f9e2af', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
+                     fg='#e0e0e8', bg='#2d2d44', padx=4, pady=1).pack(side=tk.LEFT, padx=1)
 
         # Click binding
         aid = asset['id']
@@ -204,14 +204,14 @@ class AssetsMode(tk.Frame):
             img = Image.open(path)
             img.thumbnail((THUMB_W, THUMB_H), Image.LANCZOS)
             # Pad to exact size
-            padded = Image.new('RGBA', (THUMB_W, THUMB_H), (49, 50, 68, 255))
+            padded = Image.new('RGBA', (THUMB_W, THUMB_H), (36, 36, 56, 255))
             x = (THUMB_W - img.width) // 2
             y = (THUMB_H - img.height) // 2
             padded.paste(img, (x, y))
             photo = ImageTk.PhotoImage(padded)
         except Exception:
             # Placeholder
-            padded = Image.new('RGBA', (THUMB_W, THUMB_H), (69, 71, 90, 255))
+            padded = Image.new('RGBA', (THUMB_W, THUMB_H), (45, 45, 68, 255))
             photo = ImageTk.PhotoImage(padded)
 
         self._thumbnails[aid] = photo
@@ -257,14 +257,14 @@ class AssetsMode(tk.Frame):
         self._drag_start = None  # for middle-click drag panning
 
         # Top bar
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         tk.Label(top, text=f"Onboard: {filename}", font=('Segoe UI', 14, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
 
         tk.Button(top, text="Skip / Back to Browser", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._skip_onboarding).pack(side=tk.RIGHT)
 
         # Instructions
@@ -272,48 +272,48 @@ class AssetsMode(tk.Frame):
             value="Left-click: place corner  |  Right-click: undo  |  Scroll: zoom  |  Middle-drag: pan"
         )
         tk.Label(self, textvariable=self._instruction_var, font=('Segoe UI', 9),
-                 fg='#f9e2af', bg='#1e1e2e').pack(pady=(2, 2))
+                 fg='#8888a0', bg='#0d0d14').pack(pady=(2, 2))
 
         # Buttons ABOVE the canvas
-        btn_frame = tk.Frame(self, bg='#1e1e2e')
+        btn_frame = tk.Frame(self, bg='#0d0d14')
         btn_frame.pack(pady=(0, 4))
 
         self._undo_btn = tk.Button(btn_frame, text="Undo Last Point",
                                    font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#45475a', bd=0,
+                                   fg='#e0e0e8', bg='#2d2d44', bd=0,
                                    padx=16, pady=6, cursor='hand2',
                                    command=self._undo_last_corner, state=tk.DISABLED)
         self._undo_btn.pack(side=tk.LEFT, padx=8)
 
         self._redo_btn = tk.Button(btn_frame, text="Reset All",
                                    font=('Segoe UI', 10),
-                                   fg='#cdd6f4', bg='#f38ba8', bd=0,
+                                   fg='#ffffff', bg='#dc2626', bd=0,
                                    padx=16, pady=6, cursor='hand2',
                                    command=self._redo_corners, state=tk.DISABLED)
         self._redo_btn.pack(side=tk.LEFT, padx=8)
 
         self._confirm_btn = tk.Button(btn_frame, text="Confirm Corners",
                                       font=('Segoe UI', 10, 'bold'),
-                                      fg='#1e1e2e', bg='#a6e3a1', bd=0,
+                                      fg='#ffffff', bg='#1e3a5f', bd=0,
                                       padx=16, pady=6, cursor='hand2',
                                       command=self._confirm_corners, state=tk.DISABLED)
         self._confirm_btn.pack(side=tk.LEFT, padx=8)
 
         self._zoom_label = tk.Label(btn_frame, text="1.0x", font=('Segoe UI', 9),
-                                    fg='#6c7086', bg='#1e1e2e', width=6)
+                                    fg='#555570', bg='#0d0d14', width=6)
         self._zoom_label.pack(side=tk.LEFT, padx=(16, 0))
 
         tk.Button(btn_frame, text="Reset View", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._reset_view).pack(side=tk.LEFT, padx=4)
 
         # Canvas
-        canvas_frame = tk.Frame(self, bg='#1e1e2e')
+        canvas_frame = tk.Frame(self, bg='#0d0d14')
         canvas_frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
         self._ob_canvas = tk.Canvas(canvas_frame, width=CANVAS_W, height=CANVAS_H,
-                                    bg='#181825', highlightthickness=1,
-                                    highlightbackground='#45475a')
+                                    bg='#0d0d14', highlightthickness=1,
+                                    highlightbackground='#2d2d44')
         self._ob_canvas.pack(expand=True)
 
         # Load and display image
@@ -437,7 +437,7 @@ class AssetsMode(tk.Frame):
             cx, cy = self._normalized_to_canvas(c[0], c[1])
             r = 6
             dot = self._ob_canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
-                                               fill='#f38ba8', outline='white', width=1)
+                                               fill='#dc2626', outline='white', width=1)
             text = self._ob_canvas.create_text(cx, cy, text=str(i + 1),
                                                 font=('Segoe UI', 8, 'bold'), fill='white')
             self._corner_dots.append((dot, text))
@@ -480,7 +480,7 @@ class AssetsMode(tk.Frame):
             cx, cy = self._normalized_to_canvas(c[0], c[1])
             points.extend([cx, cy])
         points.extend(points[:2])
-        self._ob_canvas.create_line(*points, fill='#a6e3a1', width=2, tags='polygon')
+        self._ob_canvas.create_line(*points, fill='#1e3a5f', width=2, tags='polygon')
 
     def _render_warp_preview(self):
         """Warp a sample plate into the selected region as a preview."""
@@ -548,12 +548,12 @@ class AssetsMode(tk.Frame):
     def _show_metadata_form(self):
         self._clear()
 
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
         tk.Label(top, text=f"Register: {self._onboard_filename}",
-                 font=('Segoe UI', 14, 'bold'), fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT)
+                 font=('Segoe UI', 14, 'bold'), fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT)
 
-        form = tk.Frame(self, bg='#1e1e2e')
+        form = tk.Frame(self, bg='#0d0d14')
         form.pack(pady=16, padx=40)
 
         row = 0
@@ -561,8 +561,8 @@ class AssetsMode(tk.Frame):
 
         def add_dropdown(label, values, default=None):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#cdd6f4',
-                     bg='#1e1e2e', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
+            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
+                     bg='#0d0d14', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
             var = tk.StringVar(value=default or values[0])
             ttk.Combobox(form, textvariable=var, values=values, state='readonly',
                          width=25).grid(row=row, column=1, sticky='w', pady=4)
@@ -571,11 +571,11 @@ class AssetsMode(tk.Frame):
 
         def add_entry(label, default=''):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#cdd6f4',
-                     bg='#1e1e2e', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
+            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
+                     bg='#0d0d14', anchor='w').grid(row=row, column=0, sticky='w', pady=4, padx=(0, 12))
             var = tk.StringVar(value=default)
-            tk.Entry(form, textvariable=var, width=28, bg='#313244', fg='#cdd6f4',
-                     insertbackground='#cdd6f4', bd=0, font=('Segoe UI', 10)
+            tk.Entry(form, textvariable=var, width=28, bg='#242438', fg='#e0e0e8',
+                     insertbackground='#e0e0e8', bd=0, font=('Segoe UI', 10)
                      ).grid(row=row, column=1, sticky='w', pady=4)
             self._meta_fields[label] = var
             row += 1
@@ -590,15 +590,15 @@ class AssetsMode(tk.Frame):
         add_entry('Tags (comma separated)')
 
         # Buttons
-        btn_frame = tk.Frame(self, bg='#1e1e2e')
+        btn_frame = tk.Frame(self, bg='#0d0d14')
         btn_frame.pack(pady=16)
 
         tk.Button(btn_frame, text="Save Asset", font=('Segoe UI', 11, 'bold'),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=20, pady=8,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=20, pady=8,
                   cursor='hand2', command=self._save_asset).pack(side=tk.LEFT, padx=8)
 
         tk.Button(btn_frame, text="Cancel", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=16, pady=8,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=16, pady=8,
                   cursor='hand2', command=self._show_browser).pack(side=tk.LEFT, padx=8)
 
     def _save_asset(self):
@@ -656,23 +656,23 @@ class AssetsMode(tk.Frame):
         self._detail_asset_id = asset_id
 
         # Top bar
-        top = tk.Frame(self, bg='#1e1e2e')
+        top = tk.Frame(self, bg='#0d0d14')
         top.pack(fill=tk.X, padx=16, pady=(12, 4))
 
         tk.Button(top, text="< Back", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._show_browser).pack(side=tk.LEFT)
 
         make_model = f"{asset.get('make', '')} {asset.get('model', '')}".strip() or asset['filename']
         tk.Label(top, text=make_model, font=('Segoe UI', 14, 'bold'),
-                 fg='#cdd6f4', bg='#1e1e2e').pack(side=tk.LEFT, padx=16)
+                 fg='#e0e0e8', bg='#0d0d14').pack(side=tk.LEFT, padx=16)
 
         # Main content: image left, metadata right
-        content = tk.Frame(self, bg='#1e1e2e')
+        content = tk.Frame(self, bg='#0d0d14')
         content.pack(fill=tk.BOTH, expand=True, padx=16, pady=8)
 
         # Image with corner overlay
-        img_frame = tk.Frame(content, bg='#181825')
+        img_frame = tk.Frame(content, bg='#0d0d14')
         img_frame.pack(side=tk.LEFT, padx=(0, 16))
 
         path = os.path.join(VEHICLES_DIR, asset['filename'])
@@ -684,22 +684,22 @@ class AssetsMode(tk.Frame):
                 draw = ImageDraw.Draw(pil_img)
                 w, h = pil_img.size
                 pts = [(c[0] * w, c[1] * h) for c in corners]
-                draw.polygon(pts, outline='#a6e3a1', width=3)
+                draw.polygon(pts, outline='#1e3a5f', width=3)
                 for i, pt in enumerate(pts):
                     r = 5
                     draw.ellipse([pt[0] - r, pt[1] - r, pt[0] + r, pt[1] + r],
-                                 fill='#f38ba8', outline='white')
+                                 fill='#dc2626', outline='white')
 
             scale = min(600 / pil_img.width, 450 / pil_img.height)
             disp = pil_img.resize((int(pil_img.width * scale), int(pil_img.height * scale)), Image.LANCZOS)
             self._detail_photo = ImageTk.PhotoImage(disp)
-            tk.Label(img_frame, image=self._detail_photo, bg='#181825').pack(padx=4, pady=4)
+            tk.Label(img_frame, image=self._detail_photo, bg='#0d0d14').pack(padx=4, pady=4)
         except Exception:
-            tk.Label(img_frame, text="Image not found", fg='#f38ba8', bg='#181825',
+            tk.Label(img_frame, text="Image not found", fg='#dc2626', bg='#0d0d14',
                      font=('Segoe UI', 12)).pack(padx=40, pady=40)
 
         # Metadata panel
-        meta_frame = tk.Frame(content, bg='#1e1e2e')
+        meta_frame = tk.Frame(content, bg='#0d0d14')
         meta_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         fields = [
@@ -717,40 +717,40 @@ class AssetsMode(tk.Frame):
         ]
 
         for label, value in fields:
-            row = tk.Frame(meta_frame, bg='#1e1e2e')
+            row = tk.Frame(meta_frame, bg='#0d0d14')
             row.pack(fill=tk.X, pady=2)
             tk.Label(row, text=f"{label}:", font=('Segoe UI', 9, 'bold'),
-                     fg='#a6adc8', bg='#1e1e2e', width=14, anchor='w').pack(side=tk.LEFT)
+                     fg='#8888a0', bg='#0d0d14', width=14, anchor='w').pack(side=tk.LEFT)
             tk.Label(row, text=value, font=('Segoe UI', 9),
-                     fg='#cdd6f4', bg='#1e1e2e', anchor='w').pack(side=tk.LEFT)
+                     fg='#e0e0e8', bg='#0d0d14', anchor='w').pack(side=tk.LEFT)
 
         # Templates referencing this asset
         ref_templates = [t for t in self.state.templates if t.get('vehicle_id') == asset_id]
         if ref_templates:
             tk.Label(meta_frame, text=f"\nUsed in {len(ref_templates)} template(s):",
-                     font=('Segoe UI', 9, 'bold'), fg='#89b4fa', bg='#1e1e2e',
+                     font=('Segoe UI', 9, 'bold'), fg='#1e3a5f', bg='#0d0d14',
                      anchor='w').pack(fill=tk.X, pady=(8, 2))
             for t in ref_templates:
                 tk.Label(meta_frame, text=f"  - {t.get('name', t['id'])}",
-                         font=('Segoe UI', 9), fg='#cdd6f4', bg='#1e1e2e',
+                         font=('Segoe UI', 9), fg='#e0e0e8', bg='#0d0d14',
                          anchor='w').pack(fill=tk.X)
 
         # Action buttons
-        btn_frame = tk.Frame(meta_frame, bg='#1e1e2e')
+        btn_frame = tk.Frame(meta_frame, bg='#0d0d14')
         btn_frame.pack(fill=tk.X, pady=(16, 0))
 
         tk.Button(btn_frame, text="Edit Metadata", font=('Segoe UI', 9),
-                  fg='#1e1e2e', bg='#89b4fa', bd=0, padx=12, pady=4,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
                   cursor='hand2',
                   command=lambda: self._edit_metadata(asset_id)).pack(side=tk.LEFT, padx=4)
 
         tk.Button(btn_frame, text="Redo Corners", font=('Segoe UI', 9),
-                  fg='#1e1e2e', bg='#f9e2af', bd=0, padx=12, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
                   cursor='hand2',
                   command=lambda: self._redo_asset_corners(asset_id)).pack(side=tk.LEFT, padx=4)
 
         tk.Button(btn_frame, text="Delete Asset", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=4,
+                  fg='#ffffff', bg='#dc2626', bd=0, padx=12, pady=4,
                   cursor='hand2',
                   command=lambda: self._delete_asset(asset_id)).pack(side=tk.RIGHT, padx=4)
 
@@ -796,11 +796,11 @@ class AssetsMode(tk.Frame):
         win = tk.Toplevel(self)
         win.title(f"Edit: {asset['filename']}")
         win.geometry("400x450")
-        win.configure(bg='#1e1e2e')
+        win.configure(bg='#0d0d14')
         win.transient(self)
         win.grab_set()
 
-        form = tk.Frame(win, bg='#1e1e2e')
+        form = tk.Frame(win, bg='#0d0d14')
         form.pack(pady=16, padx=24, fill=tk.BOTH, expand=True)
 
         fields = {}
@@ -808,8 +808,8 @@ class AssetsMode(tk.Frame):
 
         def add_dd(label, values, current):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#cdd6f4',
-                     bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=4)
+            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
+                     bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
             var = tk.StringVar(value=current)
             ttk.Combobox(form, textvariable=var, values=values, state='readonly',
                          width=22).grid(row=row, column=1, sticky='w', pady=4)
@@ -818,11 +818,11 @@ class AssetsMode(tk.Frame):
 
         def add_ent(label, current):
             nonlocal row
-            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#cdd6f4',
-                     bg='#1e1e2e').grid(row=row, column=0, sticky='w', pady=4)
+            tk.Label(form, text=label, font=('Segoe UI', 10), fg='#e0e0e8',
+                     bg='#0d0d14').grid(row=row, column=0, sticky='w', pady=4)
             var = tk.StringVar(value=current)
-            tk.Entry(form, textvariable=var, width=25, bg='#313244', fg='#cdd6f4',
-                     insertbackground='#cdd6f4', bd=0).grid(row=row, column=1, sticky='w', pady=4)
+            tk.Entry(form, textvariable=var, width=25, bg='#242438', fg='#e0e0e8',
+                     insertbackground='#e0e0e8', bd=0).grid(row=row, column=1, sticky='w', pady=4)
             fields[label] = var
             row += 1
 
@@ -866,7 +866,7 @@ class AssetsMode(tk.Frame):
             self._show_detail(asset_id)
 
         tk.Button(win, text="Save", font=('Segoe UI', 10, 'bold'),
-                  fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=16, pady=6,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=16, pady=6,
                   command=save).pack(pady=8)
 
     def _redo_asset_corners(self, asset_id: int):

@@ -48,12 +48,12 @@ class DemoMode(tk.Frame):
         self._clear()
 
         tk.Label(self, text="Select a Library to Demo",
-                 font=('Segoe UI', 18, 'bold'), fg='#cdd6f4', bg='#0d0d14'
+                 font=('Segoe UI', 18, 'bold'), fg='#e0e0e8', bg='#0d0d14'
                  ).pack(pady=(60, 20))
 
         if not self.state.libraries:
             tk.Label(self, text="No libraries available.\nCreate one in Libraries mode first.",
-                     font=('Segoe UI', 12), fg='#6c7086', bg='#0d0d14',
+                     font=('Segoe UI', 12), fg='#555570', bg='#0d0d14',
                      justify=tk.CENTER).pack(pady=20)
             return
 
@@ -61,9 +61,9 @@ class DemoMode(tk.Frame):
             template_count = len(lib.get('template_ids', []))
             btn_text = f"{lib['name']}  ({template_count} templates)"
             tk.Button(self, text=btn_text, font=('Segoe UI', 12),
-                      fg='#cdd6f4', bg='#313244', bd=0, padx=20, pady=10,
-                      cursor='hand2', activebackground='#45475a',
-                      activeforeground='#cdd6f4',
+                      fg='#e0e0e8', bg='#1a1a2e', bd=0, padx=20, pady=10,
+                      cursor='hand2', activebackground='#242438',
+                      activeforeground='#e0e0e8',
                       command=lambda lid=lib['id']: self._start_demo(lid)
                       ).pack(pady=4)
 
@@ -117,12 +117,12 @@ class DemoMode(tk.Frame):
 
         # Show loading screen with progress
         self._loading_label = tk.Label(self, text="Preparing demo...\nPre-warming cache (0/10)",
-                                        font=('Segoe UI', 14), fg='#f9e2af', bg='#0d0d14',
+                                        font=('Segoe UI', 14), fg='#8888a0', bg='#0d0d14',
                                         justify=tk.CENTER)
         self._loading_label.pack(expand=True)
 
         self._loading_back_btn = tk.Button(self, text="Cancel", font=('Segoe UI', 10),
-                                            fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=6,
+                                            fg='#ffffff', bg='#dc2626', bd=0, padx=12, pady=6,
                                             cursor='hand2', command=self._show_library_selector)
         self._loading_back_btn.pack(pady=8)
         self.update()
@@ -200,54 +200,54 @@ class DemoMode(tk.Frame):
         self._canvas.pack(fill=tk.BOTH, expand=True)
 
         # Overlay panel (top-right)
-        self._overlay_frame = tk.Frame(self._canvas, bg='#11111b')
+        self._overlay_frame = tk.Frame(self._canvas, bg='#1a1a2e')
         self._overlay_window = self._canvas.create_window(
             10, 10, anchor='nw', window=self._overlay_frame
         )
 
         self._overlay_lib_name = tk.Label(self._overlay_frame, text="",
                                            font=('Segoe UI', 10, 'bold'),
-                                           fg='#89b4fa', bg='#11111b')
+                                           fg='#1e3a5f', bg='#1a1a2e')
         self._overlay_lib_name.pack(anchor='w', padx=8, pady=(4, 0))
 
         self._overlay_template = tk.Label(self._overlay_frame, text="",
-                                           font=('Segoe UI', 9), fg='#cdd6f4', bg='#11111b')
+                                           font=('Segoe UI', 9), fg='#e0e0e8', bg='#1a1a2e')
         self._overlay_template.pack(anchor='w', padx=8)
 
         self._overlay_plate = tk.Label(self._overlay_frame, text="",
                                         font=('Segoe UI', 14, 'bold'),
-                                        fg='#a6e3a1', bg='#11111b')
+                                        fg='#e0e0e8', bg='#1a1a2e')
         self._overlay_plate.pack(anchor='w', padx=8)
 
         self._overlay_vehicle = tk.Label(self._overlay_frame, text="",
-                                          font=('Segoe UI', 9), fg='#a6adc8', bg='#11111b')
+                                          font=('Segoe UI', 9), fg='#8888a0', bg='#1a1a2e')
         self._overlay_vehicle.pack(anchor='w', padx=8)
 
         self._overlay_cache = tk.Label(self._overlay_frame, text="Cache: --",
-                                        font=('Segoe UI', 8), fg='#6c7086', bg='#11111b')
+                                        font=('Segoe UI', 8), fg='#555570', bg='#1a1a2e')
         self._overlay_cache.pack(anchor='w', padx=8, pady=(2, 4))
 
         self._overlay_lib_name.configure(text=self._active_library.get('name', ''))
 
         # Control bar (bottom)
-        ctrl = tk.Frame(self, bg='#11111b', height=50)
+        ctrl = tk.Frame(self, bg='#1a1a2e', height=50)
         ctrl.pack(side=tk.BOTTOM, fill=tk.X)
         ctrl.pack_propagate(False)
 
         tk.Button(ctrl, text="Prev", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=12, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
                   cursor='hand2', command=self._prev).pack(side=tk.LEFT, padx=4, pady=8)
 
         tk.Button(ctrl, text="Next", font=('Segoe UI', 10),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=12, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=12, pady=4,
                   cursor='hand2', command=self._advance).pack(side=tk.LEFT, padx=4, pady=8)
 
         self._play_btn = tk.Button(ctrl, text="Start", font=('Segoe UI', 10, 'bold'),
-                                    fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=14, pady=4,
+                                    fg='#ffffff', bg='#1e3a5f', bd=0, padx=14, pady=4,
                                     cursor='hand2', command=self._toggle_auto)
         self._play_btn.pack(side=tk.LEFT, padx=4, pady=8)
 
-        tk.Label(ctrl, text="Speed:", fg='#a6adc8', bg='#11111b',
+        tk.Label(ctrl, text="Speed:", fg='#8888a0', bg='#1a1a2e',
                  font=('Segoe UI', 9)).pack(side=tk.LEFT, padx=(12, 4))
         self._speed_var = tk.StringVar(value='3s')
         speed_combo = ttk.Combobox(ctrl, textvariable=self._speed_var,
@@ -257,19 +257,19 @@ class DemoMode(tk.Frame):
 
         # Right side controls
         tk.Button(ctrl, text="Fullscreen", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#45475a', bd=0, padx=10, pady=4,
+                  fg='#e0e0e8', bg='#2d2d44', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._toggle_fullscreen).pack(side=tk.RIGHT, padx=4, pady=8)
 
         tk.Button(ctrl, text="Export Batch", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#89b4fa', bd=0, padx=10, pady=4,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._export_batch).pack(side=tk.RIGHT, padx=4, pady=8)
 
         tk.Button(ctrl, text="Export Current", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#89b4fa', bd=0, padx=10, pady=4,
+                  fg='#ffffff', bg='#1e3a5f', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._export_current).pack(side=tk.RIGHT, padx=4, pady=8)
 
         tk.Button(ctrl, text="Back", font=('Segoe UI', 9),
-                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=10, pady=4,
+                  fg='#ffffff', bg='#dc2626', bd=0, padx=10, pady=4,
                   cursor='hand2', command=self._exit_demo).pack(side=tk.RIGHT, padx=4, pady=8)
 
         # Keyboard bindings
@@ -381,7 +381,7 @@ class DemoMode(tk.Frame):
 
     def _start_auto(self):
         self._is_running = True
-        self._play_btn.configure(text="Stop", bg='#f38ba8')
+        self._play_btn.configure(text="Stop", bg='#dc2626', fg='#ffffff')
         self._auto_cycle()
 
     def _auto_cycle(self):
@@ -426,14 +426,14 @@ class DemoMode(tk.Frame):
             win = tk.Toplevel(self)
             win.title("Export Batch")
             win.geometry("300x100")
-            win.configure(bg='#1e1e2e')
+            win.configure(bg='#0d0d14')
             win.transient(self)
 
-            tk.Label(win, text="Number of images:", fg='#cdd6f4', bg='#1e1e2e',
+            tk.Label(win, text="Number of images:", fg='#e0e0e8', bg='#0d0d14',
                      font=('Segoe UI', 10)).pack(pady=(12, 4))
             count_var = tk.StringVar(value='20')
-            entry = tk.Entry(win, textvariable=count_var, width=10, bg='#313244',
-                             fg='#cdd6f4', insertbackground='#cdd6f4', bd=0)
+            entry = tk.Entry(win, textvariable=count_var, width=10, bg='#242438',
+                             fg='#e0e0e8', insertbackground='#e0e0e8', bd=0)
             entry.pack()
             entry.focus()
 
@@ -446,7 +446,7 @@ class DemoMode(tk.Frame):
                 self._run_batch_export(count)
 
             tk.Button(win, text="Export", font=('Segoe UI', 10, 'bold'),
-                      fg='#1e1e2e', bg='#a6e3a1', bd=0, padx=12, pady=4,
+                      fg='#ffffff', bg='#1e3a5f', bd=0, padx=12, pady=4,
                       command=do_export).pack(pady=8)
             return
 
@@ -457,11 +457,11 @@ class DemoMode(tk.Frame):
         prog_win = tk.Toplevel(self)
         prog_win.title("Exporting...")
         prog_win.geometry("350x80")
-        prog_win.configure(bg='#1e1e2e')
+        prog_win.configure(bg='#0d0d14')
         prog_win.transient(self)
 
         prog_label = tk.Label(prog_win, text="Exporting 0/{count}...",
-                               fg='#cdd6f4', bg='#1e1e2e', font=('Segoe UI', 10))
+                               fg='#e0e0e8', bg='#0d0d14', font=('Segoe UI', 10))
         prog_label.pack(pady=(12, 4))
         prog_bar = ttk.Progressbar(prog_win, maximum=count, length=300)
         prog_bar.pack(pady=4)
@@ -522,7 +522,7 @@ class DemoMode(tk.Frame):
             self.after_cancel(self._auto_timer)
             self._auto_timer = None
         if hasattr(self, '_play_btn') and self._play_btn.winfo_exists():
-            self._play_btn.configure(text="Start", bg='#a6e3a1')
+            self._play_btn.configure(text="Start", bg='#1e3a5f', fg='#ffffff')
 
     def destroy(self):
         """Clean up on frame destruction."""
