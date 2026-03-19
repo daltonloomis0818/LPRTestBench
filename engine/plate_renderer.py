@@ -162,8 +162,8 @@ class _TexasPlateRenderer:
             left_text = plate_text[:3]
             right_text = plate_text[3:]
 
-        # Font sized proportional to the plate image
-        font_size = int(H * 0.22)
+        # Font sized to fill ~70% of plate width (matches real TX plates)
+        font_size = int(H * 0.36)
         plate_font = _plate_font(font_size)
 
         # Plate number sits at roughly 52% down from top
@@ -175,7 +175,7 @@ class _TexasPlateRenderer:
         left_w = left_bbox[2] - left_bbox[0]
         right_w = right_bbox[2] - right_bbox[0]
 
-        star_gap = int(W * 0.038)
+        star_gap = int(W * 0.045)
         total_w = left_w + star_gap + right_w
         start_x = (W - total_w) // 2
 
