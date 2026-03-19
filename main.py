@@ -10,8 +10,12 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk
 
-# Ensure project root is on path
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Determine project root — works both as script and as frozen EXE
+if getattr(sys, 'frozen', False):
+    # Running as PyInstaller EXE — use the directory the EXE lives in
+    ROOT_DIR = os.path.dirname(sys.executable)
+else:
+    ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT_DIR)
 
 ASSETS_VEHICLES_DIR = os.path.join(ROOT_DIR, 'assets', 'vehicles')

@@ -4,13 +4,18 @@ Assets Mode — Vehicle asset management, onboarding wizard, browser, detail vie
 
 import json
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from datetime import datetime, timezone
 from PIL import Image, ImageTk, ImageDraw
 
-ROOT_DIR = os.path.join(os.path.dirname(__file__), '..')
-VEHICLES_DIR = os.path.normpath(os.path.join(ROOT_DIR, 'assets', 'vehicles'))
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
+
+VEHICLES_DIR = os.path.normpath(os.path.join(_BASE_DIR, 'assets', 'vehicles'))
 
 VEHICLE_TYPES = ['Sedan', 'SUV', 'Pickup', 'Van', 'Box Truck', 'Commercial', 'Other']
 LIGHTING_CONDITIONS = ['Day Sun', 'Overcast', 'Dusk', 'Night', 'Night IR', 'Rain', 'Snow', 'Fog']

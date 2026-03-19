@@ -5,12 +5,16 @@ Libraries are named, ordered collections of templates.
 
 import json
 import os
+import sys
 import uuid
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, timezone
 
-ROOT_DIR = os.path.join(os.path.dirname(__file__), '..')
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
 
 
 class LibrariesMode(tk.Frame):

@@ -6,9 +6,15 @@ SVG templates in /assets/plates/ are still loaded for cairosvg when available.
 
 import io
 import os
+import sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-PLATES_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets', 'plates')
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
+
+PLATES_DIR = os.path.join(_BASE_DIR, 'assets', 'plates')
 RENDER_WIDTH = 880
 RENDER_HEIGHT = 440
 

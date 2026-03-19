@@ -215,3 +215,9 @@ assets/vehicles/*.png
 assets/overlays/*.png
 vault/
 output/*.png
+
+# PyInstaller build artifacts
+*.spec
+build/
+dist/
+LPRTestBench.exe

@@ -5,14 +5,19 @@ Smooth, professional, zero lag. Display layer only consumes from cache.
 
 import json
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from datetime import datetime, timezone
 from PIL import Image, ImageTk
 
-ROOT_DIR = os.path.join(os.path.dirname(__file__), '..')
-OUTPUT_DIR = os.path.normpath(os.path.join(ROOT_DIR, 'output'))
-SESSION_LOG_PATH = os.path.normpath(os.path.join(ROOT_DIR, 'data', 'session_log.json'))
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
+
+OUTPUT_DIR = os.path.normpath(os.path.join(_BASE_DIR, 'output'))
+SESSION_LOG_PATH = os.path.normpath(os.path.join(_BASE_DIR, 'data', 'session_log.json'))
 
 SPEED_OPTIONS = {
     'Manual': 0,

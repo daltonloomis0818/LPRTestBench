@@ -6,8 +6,14 @@ Hard mode forces visually ambiguous characters for LPR stress testing.
 
 import os
 import random
+import sys
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
+
+DATA_DIR = os.path.join(_BASE_DIR, 'data')
 
 NORMAL_LETTERS = "ABCDEFGHJKLMNPRSTUVWXYZ"  # excludes I, O, Q
 HARD_LETTERS = "IOQDB"

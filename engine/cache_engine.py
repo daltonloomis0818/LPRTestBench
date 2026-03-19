@@ -6,6 +6,7 @@ Checks vault for cached renders before generating fresh.
 
 import os
 import queue
+import sys
 import threading
 import time
 import uuid
@@ -16,8 +17,13 @@ from engine.compositor import Compositor
 from engine.plate_generator import PlateGenerator
 from engine import effects
 
-VAULT_DIR = os.path.join(os.path.dirname(__file__), '..', 'vault')
-ASSETS_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets', 'vehicles')
+if getattr(sys, 'frozen', False):
+    _BASE_DIR = os.path.dirname(sys.executable)
+else:
+    _BASE_DIR = os.path.join(os.path.dirname(__file__), '..')
+
+VAULT_DIR = os.path.join(_BASE_DIR, 'vault')
+ASSETS_DIR = os.path.join(_BASE_DIR, 'assets', 'vehicles')
 TARGET_POOL_SIZE = 20
 REFILL_THRESHOLD = 5
 
