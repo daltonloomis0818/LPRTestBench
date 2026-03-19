@@ -106,8 +106,9 @@ FONTS_DIR = os.path.join(_BASE_DIR, 'assets', 'fonts')
 
 
 def _plate_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    """Load the license plate font (Mandatory), fall back to system fonts."""
+    """Load the license plate font, fall back to system fonts."""
     candidates = [
+        os.path.join(FONTS_DIR, 'LICENSE PLATE USA.ttf'),
         os.path.join(FONTS_DIR, 'Mandatory.otf'),
         'impact.ttf',
         'arialbd.ttf',
@@ -162,8 +163,8 @@ class _TexasPlateRenderer:
             left_text = plate_text[:3]
             right_text = plate_text[3:]
 
-        # Font sized to fill ~70% of plate width (matches real TX plates)
-        font_size = int(H * 0.36)
+        # Font sized to fill ~72% of plate width (matches real TX plates)
+        font_size = int(H * 0.42)
         plate_font = _plate_font(font_size)
 
         # Plate number sits at roughly 52% down from top
