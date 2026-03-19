@@ -171,10 +171,24 @@ class DemoMode(tk.Frame):
             return
 
         # Prewarm complete — launch demo
+        depth = self._cache_engine.queue_depth() if self._cache_engine else 0
+        if depth == 0:
+            messagebox.showwarning("No Images",
+                                   "Cache engine could not generate any images.\n"
+                                   "Check that your templates reference valid registered assets.")
+            self._show_library_selector()
+            return
+
         lib['last_run'] = datetime.now(timezone.utc).isoformat()
         self.app.save_libraries()
 
-        self._build_demo_ui()
+        try:
+            self._build_demo_ui()
+        except Exception as e:
+            messagebox.showerror("UI Error", f"Failed to build demo UI:\n{e}")
+            self._show_library_selector()
+            return
+
         self._cache_engine.start()
         self._advance()
 
@@ -186,7 +200,7 @@ class DemoMode(tk.Frame):
         self._canvas.pack(fill=tk.BOTH, expand=True)
 
         # Overlay panel (top-right)
-        self._overlay_frame = tk.Frame(self._canvas, bg='#11111bcc')
+        self._overlay_frame = tk.Frame(self._canvas, bg='#11111b')
         self._overlay_window = self._canvas.create_window(
             10, 10, anchor='nw', window=self._overlay_frame
         )
@@ -370,13 +384,6 @@ class DemoMode(tk.Frame):
         self._play_btn.configure(text="Stop", bg='#f38ba8')
         self._auto_cycle()
 
-    def _stop_auto(self):
-        self._is_running = False
-        self._play_btn.configure(text="Start", bg='#a6e3a1')
-        if self._auto_timer:
-            self.after_cancel(self._auto_timer)
-            self._auto_timer = None
-
     def _auto_cycle(self):
         if not self._is_running:
             return
@@ -514,6 +521,8 @@ class DemoMode(tk.Frame):
         if self._auto_timer:
             self.after_cancel(self._auto_timer)
             self._auto_timer = None
+        if hasattr(self, '_play_btn') and self._play_btn.winfo_exists():
+            self._play_btn.configure(text="Start", bg='#a6e3a1')
 
     def destroy(self):
         """Clean up on frame destruction."""
