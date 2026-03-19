@@ -167,7 +167,7 @@ class _TexasPlateRenderer:
         plate_font = _plate_font(font_size)
 
         # Plate number sits at roughly 52% down from top
-        center_y = int(H * 0.52)
+        center_y = int(H * 0.57)
 
         # Measure text to center around star separator
         left_bbox = draw.textbbox((0, 0), left_text, font=plate_font)
