@@ -749,6 +749,44 @@ class AssetsMode(tk.Frame):
                   cursor='hand2',
                   command=lambda: self._redo_asset_corners(asset_id)).pack(side=tk.LEFT, padx=4)
 
+        tk.Button(btn_frame, text="Delete Asset", font=('Segoe UI', 9),
+                  fg='#cdd6f4', bg='#f38ba8', bd=0, padx=12, pady=4,
+                  cursor='hand2',
+                  command=lambda: self._delete_asset(asset_id)).pack(side=tk.RIGHT, padx=4)
+
+    def _delete_asset(self, asset_id: int):
+        """Delete an asset from the database and optionally remove the file."""
+        asset = self.state.asset_cache.get(asset_id)
+        if not asset:
+            return
+
+        # Check if templates reference this asset
+        ref_templates = [t for t in self.state.templates if t.get('vehicle_id') == asset_id]
+        msg = f"Delete \"{asset.get('make', '')} {asset.get('model', '')}\" ({asset['filename']})?"
+        if ref_templates:
+            msg += f"\n\nWarning: {len(ref_templates)} template(s) reference this asset and will break."
+
+        if not messagebox.askyesno("Delete Asset", msg):
+            return
+
+        # Ask about the file
+        delete_file = messagebox.askyesno("Delete File",
+                                          f"Also delete the image file?\n{asset['filename']}")
+
+        # Remove from database
+        cur = self.state.db_conn.cursor()
+        cur.execute("DELETE FROM assets WHERE id=?", (asset_id,))
+        self.state.db_conn.commit()
+
+        # Remove file if requested
+        if delete_file:
+            file_path = os.path.join(VEHICLES_DIR, asset['filename'])
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
+        self.app.refresh_asset_cache()
+        self._show_browser()
+
     def _edit_metadata(self, asset_id: int):
         """Open metadata edit dialog for an existing asset."""
         asset = self.state.asset_cache.get(asset_id)
