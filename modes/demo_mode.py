@@ -19,6 +19,7 @@ else:
 
 OUTPUT_DIR = os.path.normpath(os.path.join(_BASE_DIR, 'output'))
 SESSION_LOG_PATH = os.path.normpath(os.path.join(_BASE_DIR, 'data', 'session_log.json'))
+LOGO_PATH = os.path.normpath(os.path.join(_BASE_DIR, 'assets', 'overlays', 'patriot_lpr_logo.png'))
 
 SPEED_OPTIONS = {
     'Manual': 0,
@@ -45,15 +46,36 @@ class DemoMode(ctk.CTkFrame):
         self._overlay_visible = True
         self._overlay_hide_timer = None
         self._ctrl_frame = None
+        self._configure_redraw_timer = None
+        self._corner_logo_photo: ImageTk.PhotoImage | None = None
+        self._corner_logo_pil: Image.Image | None = None
 
         self._show_library_selector()
 
     def _show_library_selector(self):
         self._clear()
 
+        # Patriot LPR logo — splash
+        try:
+            if os.path.isfile(LOGO_PATH):
+                logo_img = Image.open(LOGO_PATH).convert('RGBA')
+                # Scale logo up for prominent splash display
+                target_w = 320
+                ratio = target_w / logo_img.width
+                target_h = int(logo_img.height * ratio)
+                logo_ctk = ctk.CTkImage(light_image=logo_img, dark_image=logo_img,
+                                        size=(target_w, target_h))
+                logo_label = ctk.CTkLabel(self, image=logo_ctk, text="",
+                                          fg_color="transparent")
+                # Keep strong ref so GC doesn't drop it
+                logo_label.image = logo_ctk
+                logo_label.pack(pady=(50, 10))
+        except Exception:
+            pass
+
         ctk.CTkLabel(self, text="Select a Library to Demo",
                      font=('Segoe UI', 18, 'bold'), text_color='#e0e0e8',
-                     fg_color="transparent").pack(pady=(60, 20))
+                     fg_color="transparent").pack(pady=(10, 20))
 
         if not self.state.libraries:
             ctk.CTkLabel(self, text="No libraries available.\nCreate one in Libraries mode first.",
@@ -200,9 +222,21 @@ class DemoMode(ctk.CTkFrame):
         self._clear()
         self._overlay_visible = True
 
+        # Ensure this frame actually expands in its parent container
+        self.pack(fill=tk.BOTH, expand=True)
+
         # Main canvas — fills everything
         self._canvas = tk.Canvas(self, bg='#000000', highlightthickness=0)
         self._canvas.pack(fill=tk.BOTH, expand=True)
+
+        # ── Persistent Patriot LPR corner logo (top-right) ──
+        self._corner_logo_photo = None
+        self._corner_logo_pil = None
+        try:
+            if os.path.isfile(LOGO_PATH):
+                self._corner_logo_pil = Image.open(LOGO_PATH).convert('RGBA')
+        except Exception:
+            self._corner_logo_pil = None
 
         # ── Info overlay (top-left, floats over canvas) ──
         self._overlay_frame = ctk.CTkFrame(self._canvas, fg_color='#000000',
@@ -303,7 +337,7 @@ class DemoMode(ctk.CTkFrame):
 
         # ── Mouse motion shows overlays, inactivity hides them ──
         self._canvas.bind('<Motion>', self._on_mouse_move)
-        self._canvas.bind('<Configure>', lambda e: self._reposition_controls())
+        self._canvas.bind('<Configure>', self._on_canvas_configure)
 
         # Keyboard bindings
         self.winfo_toplevel().bind('<Right>', lambda e: self._advance())
@@ -337,42 +371,125 @@ class DemoMode(ctk.CTkFrame):
             self._display(result[0], result[1])
 
     def _display(self, image: Image.Image, metadata: dict):
-        """Show image on canvas and update overlay."""
+        """Show image on canvas, update overlay, log, and write to vault.
+
+        Side-effects (log + vault) happen here. Pure redraw lives in
+        _render_current_image so Configure/fullscreen rescales don't
+        duplicate logs.
+        """
         self._current_image = image
         self._current_metadata = metadata
-
-        # Scale to canvas
-        cw = self._canvas.winfo_width()
-        ch = self._canvas.winfo_height()
-        if cw < 10 or ch < 10:
-            cw, ch = 1200, 750
-
-        scale = min(cw / image.width, ch / image.height, 1.0)
-        disp_w = int(image.width * scale)
-        disp_h = int(image.height * scale)
-
-        display_img = image.resize((disp_w, disp_h), Image.LANCZOS)
-        self._current_photo = ImageTk.PhotoImage(display_img)
-
-        self._canvas.delete('display')
-        self._canvas.create_image(cw // 2, ch // 2, anchor='center',
-                                  image=self._current_photo, tags='display')
-
-        # Raise overlay above image
-        self._canvas.tag_raise(self._info_window)
-        self._canvas.tag_raise(self._ctrl_window)
-
-        # Update overlay
-        self._overlay_plate.configure(text=metadata.get('plate_text', ''))
-        self._overlay_vehicle.configure(
-            text=f"{metadata.get('template_name', '')}  —  {metadata.get('vehicle_info', '')}"
-        )
+        self._render_current_image()
 
         # Log to session
         self._log_session(metadata)
 
         # Write to vault
         self._write_vault(image, metadata)
+
+    def _render_current_image(self):
+        """Idempotent canvas redraw of the current image at current canvas size.
+
+        Safe to call from Configure events, fullscreen toggles, etc. — does
+        NOT log or write to vault. Fits image to the full canvas, upscaling
+        when needed so fullscreen actually fills the screen.
+        """
+        if self._current_image is None or not hasattr(self, '_canvas'):
+            return
+        try:
+            if not self._canvas.winfo_exists():
+                return
+        except Exception:
+            return
+
+        image = self._current_image
+        metadata = self._current_metadata or {}
+
+        # Flush pending geometry so winfo_width/height reflect reality
+        try:
+            self._canvas.update_idletasks()
+        except Exception:
+            pass
+
+        cw = self._canvas.winfo_width()
+        ch = self._canvas.winfo_height()
+        if cw < 10 or ch < 10:
+            cw, ch = 1200, 750
+
+        # Fit to canvas — allow upscaling (no 1.0 clamp) so fullscreen fills
+        scale = min(cw / image.width, ch / image.height)
+        disp_w = max(1, int(image.width * scale))
+        disp_h = max(1, int(image.height * scale))
+
+        try:
+            display_img = image.resize((disp_w, disp_h), Image.LANCZOS)
+            self._current_photo = ImageTk.PhotoImage(display_img)
+        except Exception:
+            return
+
+        self._canvas.delete('display')
+        self._canvas.create_image(cw // 2, ch // 2, anchor='center',
+                                  image=self._current_photo, tags='display')
+
+        # Redraw persistent corner logo (sized proportional to canvas)
+        self._draw_corner_logo(cw, ch)
+
+        # Raise overlays above image + logo
+        try:
+            if hasattr(self, '_info_window'):
+                self._canvas.tag_raise(self._info_window)
+            if hasattr(self, '_ctrl_window'):
+                self._canvas.tag_raise(self._ctrl_window)
+        except Exception:
+            pass
+
+        # Update overlay text (cheap — no side effects)
+        if hasattr(self, '_overlay_plate'):
+            self._overlay_plate.configure(text=metadata.get('plate_text', ''))
+        if hasattr(self, '_overlay_vehicle'):
+            self._overlay_vehicle.configure(
+                text=f"{metadata.get('template_name', '')}  —  {metadata.get('vehicle_info', '')}"
+            )
+
+    def _draw_corner_logo(self, cw: int, ch: int):
+        """Draw Patriot LPR logo in the top-right corner of the demo canvas.
+
+        Scales with canvas size so it stays prominent in fullscreen but
+        subtle in windowed mode.
+        """
+        if self._corner_logo_pil is None:
+            return
+        try:
+            # Target width: ~9% of canvas width, clamped to sensible range
+            target_w = max(90, min(220, int(cw * 0.09)))
+            ratio = target_w / self._corner_logo_pil.width
+            target_h = max(1, int(self._corner_logo_pil.height * ratio))
+
+            logo_resized = self._corner_logo_pil.resize(
+                (target_w, target_h), Image.LANCZOS
+            )
+            self._corner_logo_photo = ImageTk.PhotoImage(logo_resized)
+
+            self._canvas.delete('corner_logo')
+            pad = 18
+            self._canvas.create_image(
+                cw - pad, pad, anchor='ne',
+                image=self._corner_logo_photo, tags='corner_logo'
+            )
+        except Exception:
+            pass
+
+    def _on_canvas_configure(self, event=None):
+        """Handle canvas resize — reposition controls + debounce redraw."""
+        self._reposition_controls()
+        # Debounce rescale: collapse rapid Configure bursts during fullscreen
+        # transitions into a single redraw once the size settles.
+        if self._configure_redraw_timer is not None:
+            try:
+                self.after_cancel(self._configure_redraw_timer)
+            except Exception:
+                pass
+        self._configure_redraw_timer = self.after(60, self._render_current_image)
 
     def _log_session(self, metadata: dict):
         """Append to session log."""
@@ -487,8 +604,18 @@ class DemoMode(ctk.CTkFrame):
         top.attributes('-fullscreen', True)
         top.attributes('-topmost', True)
         top.after(200, lambda: top.attributes('-topmost', False))
-        # Reposition controls for new size
-        self.after(100, self._reposition_controls)
+        # Force geometry propagation so winfo_width/height reflect fullscreen
+        try:
+            top.update_idletasks()
+            self._canvas.update_idletasks()
+        except Exception:
+            pass
+        # Redraw at new canvas size — multiple passes as belt-and-suspenders
+        # because -fullscreen attribute application is async on Windows.
+        self.after(50, self._reposition_controls)
+        self.after(60, self._render_current_image)
+        self.after(200, self._render_current_image)
+        self.after(400, self._render_current_image)
 
     def _exit_fullscreen(self):
         if not self._is_fullscreen:
@@ -502,7 +629,14 @@ class DemoMode(ctk.CTkFrame):
         # Restore previous geometry
         if hasattr(self, '_pre_fs_geometry'):
             top.geometry(self._pre_fs_geometry)
-        self.after(100, self._reposition_controls)
+        try:
+            top.update_idletasks()
+            self._canvas.update_idletasks()
+        except Exception:
+            pass
+        self.after(50, self._reposition_controls)
+        self.after(60, self._render_current_image)
+        self.after(200, self._render_current_image)
 
     def _export_current(self):
         if not self._current_image or not self._current_metadata:
@@ -635,6 +769,12 @@ class DemoMode(ctk.CTkFrame):
     def destroy(self):
         """Clean up on frame destruction."""
         self._stop_auto()
+        if self._configure_redraw_timer is not None:
+            try:
+                self.after_cancel(self._configure_redraw_timer)
+            except Exception:
+                pass
+            self._configure_redraw_timer = None
         if self._cache_engine:
             self._cache_engine.stop()
         # Unbind keyboard shortcuts safely

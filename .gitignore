@@ -213,6 +213,7 @@ data/libraries.json
 data/session_log.json
 assets/vehicles/*.png
 assets/overlays/*.png
+!assets/overlays/patriot_lpr_logo.png
 vault/
 output/*.png
 
